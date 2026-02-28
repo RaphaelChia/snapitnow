@@ -1,0 +1,223 @@
+Film Session App Prebuild Plan
+
+Product Scope (MVP first)
+
+
+
+
+
+Lock the first release to one clear user promise: scan QR, login, take limited one-shot film-style photos, view/download for 30 days.
+
+
+
+Keep controls intentionally minimal: fixed filter by host or small preset list (3-5 max), optional session password, no retakes.
+
+
+
+Limit host complexity in v1: create session, configure rules, pay once, monitor submissions, end session.
+
+Suggested Architecture (low risk, low ops)
+
+
+
+
+
+Frontend: Next.js web app optimized for mobile camera flow (getUserMedia, playsinline, explicit tap-to-start camera).
+
+
+
+Auth: Email magic link (or OTP) to reduce password friction after QR scan.
+
+
+
+Backend: Postgres + server API routes (session creation, policy checks, upload signing, payment webhooks).
+
+
+
+Storage: Start with S3-compatible bucket with lifecycle delete at 30 days; choose provider based on expected egress.
+
+
+
+Payments: Stripe Checkout one-time payment per session with webhook-based activation.
+
+flowchart LR
+  Host[HostCreatesSession] --> Checkout[StripeCheckoutOneTime]
+  Checkout --> Webhook[PaymentWebhookActivateSession]
+  Webhook --> SessionDb[(SessionAndPolicyDb)]
+  Guest[GuestScansQr] --> Login[MagicLinkLogin]
+  Login --> Camera[SingleShotCameraFlow]
+  Camera --> Upload[SignedUploadToBucket]
+  Upload --> ObjectStore[(BucketStorage)]
+  SessionDb --> Gallery[HostGallery30Days]
+  ObjectStore --> Gallery
+
+Data Model and Rules to Define Early
+
+
+
+
+
+hosts, sessions, session_access, photos, payments, audit_events tables with strict ownership links (host_id, session_id).
+
+
+
+Session policy fields: require_password, password_hash, filter_mode (fixed/preset), allowed_filters, max_shots_per_user, expires_at.
+
+
+
+Photo metadata: object key, captured timestamp, filter used, uploader identity (or anonymous token), soft-delete status.
+
+
+
+Enforce all read/write checks server-side (never trust client UI restrictions).
+
+Critical Product Decisions Before Build
+
+
+
+
+
+Define what “no second try” means technically:
+
+
+
+
+
+hard cap per user/session,
+
+
+
+immediate lock after capture click,
+
+
+
+no client-side discard after upload starts.
+
+
+
+Choose identity model for guests:
+
+
+
+
+
+full account,
+
+
+
+lightweight verified guest identity,
+
+
+
+anonymous with device/session token.
+
+
+
+Decide host gallery behavior:
+
+
+
+
+
+instant preview vs delayed reveal,
+
+
+
+whether guests can view only their own photos or all session photos.
+
+Reliability and UX Risks to Address
+
+
+
+
+
+Mobile Safari camera behavior can be inconsistent; design fallback UI for permission denial, unavailable rear camera, and failed stream start.
+
+
+
+Add resumable upload strategy or retry policy for weak event Wi-Fi; prevent duplicate photo records.
+
+
+
+Add anti-abuse controls: per-IP/session rate limits, upload size/type validation, and signed URL expiration.
+
+
+
+Make session QR robust: short URL, easy rejoin path, clear “session expired/locked” screens.
+
+Cost and Retention Strategy (small scale)
+
+
+
+
+
+For small monthly volume, storage cost is usually minor; request/egress patterns can dominate cost.
+
+
+
+If hosts frequently download/share galleries, prioritize low-egress provider economics; if internal/private only, S3 is fine.
+
+
+
+Implement bucket lifecycle policy to auto-delete originals at 30 days plus DB cleanup job for metadata consistency.
+
+
+
+Track cost metrics from day one: objects per session, avg photo size, total egress per session.
+
+Security, Privacy, and Legal Baseline
+
+
+
+
+
+Publish clear consent/privacy copy in guest flow (what is collected, who owns photos, 30-day deletion promise).
+
+
+
+Add terms for hosts (they are responsible for participant consent at events).
+
+
+
+Encrypt in transit and at rest; restrict bucket to private objects with signed access.
+
+
+
+Plan simple data rights operations: delete session early, export session, audit access logs.
+
+Build Sequence
+
+
+
+
+
+Phase 1: Session/payment gating + QR entry + auth.
+
+
+
+Phase 2: Single-shot camera UX + upload pipeline + immutable capture rules.
+
+
+
+Phase 3: Host gallery + retention jobs + basic analytics/cost dashboard.
+
+
+
+Phase 4: Hardening (rate limits, monitoring, failure alerts, edge-case UX).
+
+Recommended Docs to Create First
+
+
+
+
+
+Product + rules spec in [/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/research-initial.md](/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/research-initial.md)
+
+
+
+Architecture and data model note in [/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/architecture.md](/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/architecture.md)
+
+
+
+Launch policy checklist (privacy/tax/ops) in [/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/launch-checklist.md](/Users/v2img/Documents/proj/snapitnow/snapitnow/mds/launch-checklist.md)
+
