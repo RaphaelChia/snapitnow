@@ -124,6 +124,57 @@ Per-guest shot tracking:
 - API contract layer: **tRPC + Zod + TanStack Query**.
 - Testing: **Vitest + Testing Library + Playwright** (mobile-focused end-to-end scenarios).
 
+## Data Access Pattern
+
+All Supabase calls happen server-side. Client components interact through TanStack Query hooks that call Server Actions.
+
+### Directory structure
+
+```
+lib/
+  db/
+    index.ts              ← Supabase server client factory
+    queries/
+      sessions.ts         ← read functions (getSessionById, listHostSessions, ...)
+      photos.ts           ← read functions (getSessionPhotos, ...)
+      payments.ts         ← read functions
+    mutations/
+      sessions.ts         ← write functions (createSession, activateSession, ...)
+      photos.ts           ← write functions (commitPhoto, deleteExpiredPhotos, ...)
+      payments.ts         ← write functions (recordPayment, ...)
+
+hooks/
+  use-sessions.ts         ← useQuery + useMutation wrappers for sessions
+  use-photos.ts           ← useQuery + useMutation wrappers for photos
+  use-payments.ts         ← useQuery + useMutation wrappers for payments
+
+app/(main)/sessions/
+  actions.ts              ← Server Actions (Zod-validated, calls lib/db)
+```
+
+### Principles
+
+- Every file in `lib/db/` uses `import "server-only"` to prevent client bundling.
+- Plain async functions, not classes. Each query/mutation takes explicit arguments and returns typed data.
+- Components never touch the Supabase client directly.
+- All reads use TanStack Query (`useQuery`) calling Server Actions as query functions.
+- All writes use TanStack Query (`useMutation`) calling Server Actions that validate with Zod then call mutation functions.
+- Server Actions are the bridge between client hooks and the DB layer.
+- Query keys are centralized per domain for consistent cache invalidation.
+
+### Data flow
+
+```
+Client Component
+  → useQuery / useMutation (TanStack Query hook)
+    → calls Server Action (app/.../actions.ts)
+      → Zod validates input (mutations)
+      → calls lib/db/queries/*.ts or lib/db/mutations/*.ts
+        → Supabase server client
+          → returns typed result
+    → TanStack Query manages cache, loading, error, refetch
+```
+
 ## Data Model (Initial)
 
 ### `hosts`

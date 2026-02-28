@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/provider";
+import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
 const roboto = Roboto({ subsets: ["latin"], variable: "--font-sans" });
@@ -37,7 +38,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </AuthProvider>
       </body>
     </html>
   );
