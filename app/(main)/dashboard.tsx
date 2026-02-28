@@ -1,7 +1,7 @@
 "use client"
 
 import { useHostSessions, useDeleteSession } from "@/hooks/use-sessions"
-import { Camera, Plus, Trash2, Users, Film } from "lucide-react"
+import { Camera, Plus, Trash2, Users, Film, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { CreateSessionDialog } from "./create-session-dialog"
 import { useState } from "react"
+import Link from "next/link"
 import type { Session } from "@/lib/db/types"
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
@@ -26,38 +27,46 @@ function SessionCard({ session }: { session: Session }) {
   const deleteMutation = useDeleteSession()
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">{session.title}</CardTitle>
-            <CardDescription>
-              Created {new Date(session.created_at).toLocaleDateString()}
-            </CardDescription>
+    <Card className="transition-shadow hover:shadow-md">
+      <Link href={`/sessions/${session.id}`} className="block">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="truncate">{session.title}</CardTitle>
+              <CardDescription>
+                Created {new Date(session.created_at).toLocaleDateString()}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={statusVariant[session.status] ?? "secondary"}>
+                {session.status}
+              </Badge>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </div>
           </div>
-          <Badge variant={statusVariant[session.status] ?? "secondary"}>
-            {session.status}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Film className="size-3" />
-            {session.roll_preset} shots
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="size-3" />
-            {session.filter_mode === "preset" ? "Guest picks" : "Fixed filter"}
-          </span>
-        </div>
-      </CardContent>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Film className="size-3" />
+              {session.roll_preset} shots
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="size-3" />
+              {session.filter_mode === "preset" ? "Guest picks" : "Fixed filter"}
+            </span>
+          </div>
+        </CardContent>
+      </Link>
       <CardFooter className="justify-end gap-2">
         <Button
           variant="destructive"
           size="sm"
           disabled={deleteMutation.isPending || session.status === "active"}
-          onClick={() => deleteMutation.mutate(session.id)}
+          onClick={(e) => {
+            e.preventDefault()
+            deleteMutation.mutate(session.id)
+          }}
         >
           <Trash2 className="size-3" />
           Delete

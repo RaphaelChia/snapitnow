@@ -1,6 +1,6 @@
 export type FilterMode = "fixed" | "preset"
 export type SessionStatus = "draft" | "active" | "expired"
-export type PhotoStatus = "pending_upload" | "uploaded" | "failed"
+export type PhotoStatus = "pending_upload" | "uploaded" | "processed" | "failed"
 export type PaymentStatus = "pending" | "succeeded" | "failed"
 
 export interface Host {
@@ -43,8 +43,11 @@ export interface Photo {
   guest_user_id: string
   object_key: string
   filter_used: string | null
+  filtered_key: string | null
+  thumbnail_key: string | null
   capture_committed_at: string
   uploaded_at: string | null
+  processed_at: string | null
   status: PhotoStatus
   delete_after: string
 }
@@ -65,11 +68,38 @@ export interface Payment {
 export interface Database {
   public: {
     Tables: {
-      hosts: { Row: Host; Insert: Omit<Host, "created_at">; Update: Partial<Omit<Host, "id">> }
-      sessions: { Row: Session; Insert: Omit<Session, "id" | "created_at" | "activated_at" | "expires_at" | "status">; Update: Partial<Omit<Session, "id">> }
-      guest_sessions: { Row: GuestSession; Insert: Omit<GuestSession, "id" | "created_at" | "updated_at">; Update: Partial<Omit<GuestSession, "id">> }
-      photos: { Row: Photo; Insert: Omit<Photo, "id" | "uploaded_at">; Update: Partial<Omit<Photo, "id">> }
-      payments: { Row: Payment; Insert: Omit<Payment, "id" | "created_at" | "paid_at">; Update: Partial<Omit<Payment, "id">> }
+      hosts: {
+        Row: Host
+        Insert: Omit<Host, "created_at">
+        Update: Partial<Omit<Host, "id">>
+        Relationships: []
+      }
+      sessions: {
+        Row: Session
+        Insert: Omit<Session, "id" | "created_at" | "activated_at" | "expires_at" | "status">
+        Update: Partial<Omit<Session, "id">>
+        Relationships: []
+      }
+      guest_sessions: {
+        Row: GuestSession
+        Insert: Omit<GuestSession, "id" | "created_at" | "updated_at">
+        Update: Partial<Omit<GuestSession, "id">>
+        Relationships: []
+      }
+      photos: {
+        Row: Photo
+        Insert: Omit<Photo, "id" | "uploaded_at" | "filtered_key" | "thumbnail_key" | "processed_at">
+        Update: Partial<Omit<Photo, "id">>
+        Relationships: []
+      }
+      payments: {
+        Row: Payment
+        Insert: Omit<Payment, "id" | "created_at" | "paid_at">
+        Update: Partial<Omit<Payment, "id">>
+        Relationships: []
+      }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }

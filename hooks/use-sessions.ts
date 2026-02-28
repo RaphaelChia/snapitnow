@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   fetchHostSessions,
+  fetchSession,
   createNewSession,
   removeSession,
   type CreateSessionFormData,
@@ -11,12 +12,21 @@ import {
 export const sessionKeys = {
   all: ["sessions"] as const,
   list: () => [...sessionKeys.all, "list"] as const,
+  detail: (id: string) => [...sessionKeys.all, "detail", id] as const,
 }
 
 export function useHostSessions() {
   return useQuery({
     queryKey: sessionKeys.list(),
     queryFn: () => fetchHostSessions(),
+  })
+}
+
+export function useSession(id: string) {
+  return useQuery({
+    queryKey: sessionKeys.detail(id),
+    queryFn: () => fetchSession(id),
+    enabled: !!id,
   })
 }
 

@@ -14,7 +14,7 @@
 - **Fast capture UX.** No client-side image processing at capture time — just grab the raw frame and upload. Critical for the "instant commit" film-camera feel on unstable event Wi-Fi.
 - **Consistent output.** Every photo in a session looks identical regardless of device/browser rendering differences.
 - **Simple client code.** CSS `filter` on the `<video>` element is one line of inline style. No WebGL, no pixel manipulation, no library.
-- **Leverages existing stack.** `sharp` is already a dependency. Processing runs in Trigger.dev background jobs alongside compression and thumbnailing.
+- **Leverages existing stack.** `sharp` is already a dependency. Processing runs server-side via Next.js `after()` — no external job service needed.
 - **Preview ≠ final is acceptable.** The CSS preview is an approximation — real film cameras have a viewfinder that doesn't match the developed print either. This is on-brand.
 
 ---
@@ -232,24 +232,27 @@ sessions/{session_id}/filtered/{photo_id}.jpg   ← processed with sharp pipelin
 
 ### Processing flow
 
-Triggered after successful raw upload:
+Triggered after successful raw upload via Next.js `after()` (runs after the response is sent to the client):
 
 ```
-Upload completes
-  → photo record updated to status: 'uploaded'
-  → enqueue Trigger.dev job: processPhotoFilter
+Upload route:
+  1. Upload raw to storage
+  2. Mark photo as 'uploaded'
+  3. Return response to client immediately
+  4. after() fires → processPhoto(photoId, rawKey, filterUsed)
 
-processPhotoFilter job:
+processPhoto:
   1. Download raw image from storage
   2. Look up filter_used from photo record
   3. Run FILTER_PIPELINES[filter_used](sharp(rawBuffer))
   4. Apply shared post-processing:
-     - Strip EXIF metadata (privacy)
-     - Resize if > max dimension (e.g. 2048px long edge)
-     - Compress to target quality (e.g. JPEG q=85)
-     - Generate thumbnail (e.g. 400px, q=75)
+     - Strip EXIF metadata (privacy via auto-rotate)
+     - Resize if > max dimension (2048px long edge)
+     - Compress to target quality (JPEG q=85, mozjpeg)
+     - Generate thumbnail (400px, q=75)
   5. Upload filtered image + thumbnail to storage
-  6. Update photo record: filtered_key, thumbnail_key, processed_at
+  6. Update photo record: filtered_key, thumbnail_key, processed_at, status='processed'
+  7. On failure: mark photo as 'failed', log error
 ```
 
 ### Photo record additions
@@ -270,57 +273,63 @@ pending_upload → uploaded (raw in bucket) → processed (filtered + thumbnail 
 
 Consider adding `'processed'` to the status check constraint, or use `processed_at is not null` as the indicator.
 
-### Trigger.dev job sketch
+### Upload route integration
 
 ```ts
-// jobs/process-photo-filter.ts
-import { task } from '@trigger.dev/sdk/v3';
-import sharp from 'sharp';
-import { FILTER_PIPELINES } from '@/lib/filters/server';
-import type { FilterId } from '@/lib/filters/presets';
+// In app/api/photos/upload/route.ts
+import { after } from 'next/server';
+import { processPhoto } from '@/lib/filters/process-photo';
 
-export const processPhotoFilter = task({
-  id: 'process-photo-filter',
-  retry: { maxAttempts: 3 },
-  run: async ({ photoId, rawKey, filterUsed }: {
-    photoId: string;
-    rawKey: string;
-    filterUsed: FilterId;
-  }) => {
-    // 1. Download raw from storage
-    const rawBuffer = await storageService.download(rawKey);
-
-    // 2. Apply filter pipeline
-    const pipeline = FILTER_PIPELINES[filterUsed];
-    let img = pipeline(sharp(rawBuffer));
-
-    // 3. Shared post-processing
-    img = img
-      .rotate()               // auto-rotate from EXIF
-      .resize(2048, 2048, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85, mozjpeg: true });
-
-    const filteredBuffer = await img.toBuffer();
-
-    // 4. Generate thumbnail
-    const thumbBuffer = await sharp(filteredBuffer)
-      .resize(400, 400, { fit: 'inside' })
-      .jpeg({ quality: 75 })
-      .toBuffer();
-
-    // 5. Upload processed outputs
-    const filteredKey = rawKey.replace('/raw/', '/filtered/');
-    const thumbKey = rawKey.replace('/raw/', '/thumbs/');
-
-    await Promise.all([
-      storageService.upload(filteredKey, filteredBuffer, 'image/jpeg'),
-      storageService.upload(thumbKey, thumbBuffer, 'image/jpeg'),
-    ]);
-
-    // 6. Update photo record
-    await updatePhotoProcessed(photoId, { filteredKey, thumbKey });
-  },
+// ... after raw upload succeeds and photo is marked 'uploaded':
+after(async () => {
+  await processPhoto(photo.id, photo.object_key, filterUsed ?? 'none');
 });
+
+return NextResponse.json({ photoId, objectKey }); // returns immediately
+```
+
+### processPhoto function
+
+```ts
+// lib/filters/process-photo.ts
+import sharp from 'sharp';
+import { FILTER_PIPELINES } from './server';
+import { getStorageService, BUCKET } from '@/lib/storage';
+import { markPhotoProcessed, markPhotoFailed } from '@/lib/db/mutations/photos';
+
+export async function processPhoto(photoId: string, rawKey: string, filterUsed: string) {
+  const storage = getStorageService();
+
+  // 1. Download raw from storage
+  const rawBuffer = await storage.download(BUCKET, rawKey);
+
+  // 2. Apply filter pipeline + shared post-processing
+  const pipeline = FILTER_PIPELINES[filterUsed] ?? FILTER_PIPELINES['none'];
+  let img = pipeline(sharp(rawBuffer))
+    .rotate()
+    .resize(2048, 2048, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85, mozjpeg: true });
+
+  const filteredBuffer = await img.toBuffer();
+
+  // 3. Generate thumbnail
+  const thumbBuffer = await sharp(filteredBuffer)
+    .resize(400, 400, { fit: 'inside' })
+    .jpeg({ quality: 75 })
+    .toBuffer();
+
+  // 4. Upload processed outputs
+  const filteredKey = rawKey.replace('/raw/', '/filtered/');
+  const thumbKey = rawKey.replace('/raw/', '/thumbs/');
+
+  await Promise.all([
+    storage.upload({ bucket: BUCKET, objectKey: filteredKey, data: filteredBuffer, contentType: 'image/jpeg' }),
+    storage.upload({ bucket: BUCKET, objectKey: thumbKey, data: thumbBuffer, contentType: 'image/jpeg' }),
+  ]);
+
+  // 5. Update photo record
+  await markPhotoProcessed(photoId, filteredKey, thumbKey);
+}
 ```
 
 ---
@@ -394,15 +403,13 @@ lib/
     presets.ts              ← FilterId type, FilterPreset type, FILTER_PRESETS array
     css.ts                  ← FILTER_CSS map (client-safe, no server deps)
     server.ts               ← FILTER_PIPELINES map (server-only, imports sharp)
+    process-photo.ts        ← processPhoto() — downloads raw, applies filter, uploads filtered + thumb
 
 app/(main)/sessions/
   [id]/camera/
     filter-strip.tsx        ← horizontal filter selector (preset mode only)
     camera-viewfinder.tsx   ← <video> with CSS filter applied
     capture-button.tsx      ← capture + upload logic
-
-jobs/
-  process-photo-filter.ts   ← Trigger.dev task for sharp processing
 ```
 
 ---

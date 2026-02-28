@@ -80,7 +80,7 @@ Per-guest shot tracking:
 - Object storage (MVP): Supabase Storage on Pro plan.
 - Storage access pattern: provider-agnostic `StorageService` interface so underlying object store can be swapped later (Supabase <-> S3) without changing business logic.
 - Payments: Stripe Checkout (one-time payment per session).
-- Jobs: scheduled cleanup for expired photos and expired sessions.
+- Jobs: cron-triggered API routes for scheduled cleanup of expired photos and sessions. Filter processing runs via Next.js `after()` (no external job system).
 
 ### Mobile-First UX Requirements
 
@@ -108,12 +108,13 @@ Per-guest shot tracking:
 
 ## Supporting Stack Decisions (MVP)
 
-- Background jobs/queue: **Trigger.dev**.
+- Background processing: **Next.js `after()` API** (built into Next.js 15+).
+  - Runs server-side work after the HTTP response is sent — no external service needed.
   - Purpose in SnapItNow:
-    - retry failed uploads,
-    - process Stripe webhook side effects safely,
-    - run 30-day cleanup jobs,
-    - run async image tasks (thumbnail/compression).
+    - apply filter + generate thumbnail after raw photo upload,
+    - async image tasks (compression, EXIF stripping).
+  - For scheduled work (30-day cleanup, retry failed uploads): use a cron-triggered API route (Vercel Cron or equivalent).
+  - For Stripe webhooks: handle synchronously in a standard API route.
 - Rate limiting: **manual baseline first** (no managed dependency required for MVP).
   - Approach: Next.js middleware + simple per-IP and per-session throttling on critical endpoints.
   - Scope now: join session, capture/upload, auth endpoints.
