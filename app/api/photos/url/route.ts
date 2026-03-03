@@ -3,6 +3,7 @@ import { getPhotoById } from "@/lib/db/queries/photos"
 import { getSessionById } from "@/lib/db/queries/sessions"
 import { getStorageService, BUCKET } from "@/lib/storage"
 import { auth } from "@/auth"
+import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const session = await auth()
     const hostId = session?.user?.id
-    const guestUserId = req.nextUrl.searchParams.get("guestUserId")
+    const guestAuth = getGuestAuthFromRequest(req, photo.session_id)
 
     const photoSession = await getSessionById(photo.session_id)
     if (!photoSession) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
 
     const isHost = hostId === photoSession.host_id
-    const isGuest = guestUserId && photo.guest_user_id === guestUserId
+    const isGuest = guestAuth && photo.guest_user_id === guestAuth.guestUserId
     if (!isHost && !isGuest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }

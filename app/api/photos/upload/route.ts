@@ -6,10 +6,10 @@ import { getStorageService, BUCKET } from "@/lib/storage"
 import { createServerClient } from "@/lib/db"
 import { processPhoto } from "@/lib/filters/process-photo"
 import type { GuestSession } from "@/lib/db/types"
+import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
 const uploadSchema = z.object({
   sessionId: z.string().uuid(),
-  guestUserId: z.string().min(1),
   filterUsed: z.string().nullable(),
 })
 
@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
 
     const parsed = uploadSchema.safeParse({
       sessionId: formData.get("sessionId"),
-      guestUserId: formData.get("guestUserId"),
       filterUsed: formData.get("filterUsed") || null,
     })
 
@@ -35,7 +34,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { sessionId, guestUserId, filterUsed } = parsed.data
+    const { sessionId, filterUsed } = parsed.data
+    const guestAuth = getGuestAuthFromRequest(req, sessionId)
+    if (!guestAuth) {
+      return NextResponse.json({ error: "Guest authentication required" }, { status: 401 })
+    }
+    const guestUserId = guestAuth.guestUserId
 
     const session = await getSessionById(sessionId)
     if (!session || session.status !== "active") {

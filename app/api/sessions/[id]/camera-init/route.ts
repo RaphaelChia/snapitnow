@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSessionById } from "@/lib/db/queries/sessions"
 import { createServerClient } from "@/lib/db"
 import type { GuestSession } from "@/lib/db/types"
+import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: sessionId } = await params
-  const guestUserId = req.nextUrl.searchParams.get("guestUserId")
-
-  if (!guestUserId) {
-    return NextResponse.json({ error: "Missing guestUserId" }, { status: 400 })
+  const guestAuth = getGuestAuthFromRequest(req, sessionId)
+  if (!guestAuth) {
+    return NextResponse.json({ error: "Guest authentication required" }, { status: 401 })
   }
 
   const session = await getSessionById(sessionId)
@@ -24,7 +24,7 @@ export async function GET(
     .from("guest_sessions")
     .select("*")
     .eq("session_id", sessionId)
-    .eq("guest_user_id", guestUserId)
+    .eq("guest_user_id", guestAuth.guestUserId)
     .single()
 
   if (error || !gsData) {
@@ -45,6 +45,7 @@ export async function GET(
     },
     guestSession: {
       id: guestSession.id,
+      guest_user_id: guestSession.guest_user_id,
       shots_taken: guestSession.shots_taken,
       shots_remaining: guestSession.shots_remaining,
     },

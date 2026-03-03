@@ -42,3 +42,24 @@ export async function deleteSession(sessionId: string, hostId: string): Promise<
 
   if (error) throw error
 }
+
+export async function activateSession(
+  sessionId: string,
+  hostId: string,
+): Promise<Session> {
+  const db = createServerClient()
+  const { data, error } = await db
+    .from("sessions")
+    .update({
+      status: "active",
+      activated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", sessionId)
+    .eq("host_id", hostId)
+    .eq("status", "draft")
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { CameraViewfinder, type CameraViewfinderHandle } from "./camera-viewfinder"
 import { FilterStrip } from "./filter-strip"
 import { CaptureButton } from "./capture-button"
@@ -10,6 +10,7 @@ import type { Session, GuestSession } from "@/lib/db/types"
 
 export default function CameraPage() {
   const { id: sessionId } = useParams<{ id: string }>()
+  const router = useRouter()
   const cameraRef = useRef<CameraViewfinderHandle>(null)
 
   const [session, setSession] = useState<Session | null>(null)
@@ -18,22 +19,17 @@ export default function CameraPage() {
   const [shotsRemaining, setShotsRemaining] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [cameraReady, setCameraReady] = useState(false)
-
-  // TODO: Replace with real guest auth — for now read guestUserId from search params
-  const [guestUserId, setGuestUserId] = useState<string>("")
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    setGuestUserId(params.get("guestUserId") ?? "")
-  }, [])
-
-  useEffect(() => {
-    if (!sessionId || !guestUserId) return
+    if (!sessionId) return
 
     async function loadSession() {
       try {
-        const res = await fetch(`/api/sessions/${sessionId}/camera-init?guestUserId=${guestUserId}`)
+        const res = await fetch(`/api/sessions/${sessionId}/camera-init`)
+        if (res.status === 401) {
+          router.replace(`/s/${sessionId}`)
+          return
+        }
         if (!res.ok) throw new Error("Failed to load session")
 
         const data = await res.json()
@@ -54,9 +50,8 @@ export default function CameraPage() {
     }
 
     loadSession()
-  }, [sessionId, guestUserId])
+  }, [router, sessionId])
 
-  const handleStreamReady = useCallback(() => setCameraReady(true), [])
   const handleStreamError = useCallback((err: Error) => setError(err.message), [])
 
   const handleCapture = useCallback(async () => {
@@ -105,7 +100,6 @@ export default function CameraPage() {
       <CameraViewfinder
         ref={cameraRef}
         activeFilterId={activeFilterId}
-        onStreamReady={handleStreamReady}
         onStreamError={handleStreamError}
       />
 
@@ -119,7 +113,6 @@ export default function CameraPage() {
 
       <CaptureButton
         sessionId={sessionId}
-        guestUserId={guestUserId}
         activeFilterId={activeFilterId}
         shotsRemaining={shotsRemaining}
         onCapture={handleCapture}

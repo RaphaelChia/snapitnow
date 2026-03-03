@@ -6,6 +6,7 @@ import {
   fetchSession,
   createNewSession,
   removeSession,
+  activateSessionForDev,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 
@@ -48,6 +49,18 @@ export function useDeleteSession() {
     mutationFn: (sessionId: string) => removeSession(sessionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+    },
+  })
+}
+
+export function useActivateSessionDev() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sessionId: string) => activateSessionForDev(sessionId),
+    onSuccess: (_, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })
     },
   })
 }

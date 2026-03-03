@@ -36,6 +36,23 @@ export interface GuestSession {
   updated_at: string
 }
 
+export interface GuestIdentity {
+  id: string
+  email: string
+  created_at: string
+}
+
+export interface GuestAuthChallenge {
+  id: string
+  session_id: string
+  email: string
+  otp_hash: string
+  expires_at: string
+  attempts: number
+  consumed_at: string | null
+  created_at: string
+}
+
 export interface Photo {
   id: string
   session_id: string
@@ -84,6 +101,18 @@ export interface Database {
         Row: GuestSession
         Insert: Omit<GuestSession, "id" | "created_at" | "updated_at">
         Update: Partial<Omit<GuestSession, "id">>
+        Relationships: []
+      }
+      guest_identities: {
+        Row: GuestIdentity
+        Insert: Omit<GuestIdentity, "id" | "created_at">
+        Update: Partial<Omit<GuestIdentity, "id" | "created_at">>
+        Relationships: []
+      }
+      guest_auth_challenges: {
+        Row: GuestAuthChallenge
+        Insert: Omit<GuestAuthChallenge, "id" | "created_at" | "attempts" | "consumed_at">
+        Update: Partial<Omit<GuestAuthChallenge, "id" | "created_at">>
         Relationships: []
       }
       photos: {

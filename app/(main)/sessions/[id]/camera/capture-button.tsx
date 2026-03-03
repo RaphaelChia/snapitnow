@@ -6,7 +6,6 @@ import type { FilterId } from "@/lib/filters/presets"
 
 interface CaptureButtonProps {
   sessionId: string
-  guestUserId: string
   activeFilterId: FilterId
   shotsRemaining: number
   onCapture: () => Promise<Blob | null>
@@ -16,7 +15,6 @@ interface CaptureButtonProps {
 
 export function CaptureButton({
   sessionId,
-  guestUserId,
   activeFilterId,
   shotsRemaining,
   onCapture,
@@ -42,7 +40,6 @@ export function CaptureButton({
       const formData = new FormData()
       formData.append("file", blob, "capture.jpg")
       formData.append("sessionId", sessionId)
-      formData.append("guestUserId", guestUserId)
       formData.append("filterUsed", activeFilterId)
 
       const res = await fetch("/api/photos/upload", {

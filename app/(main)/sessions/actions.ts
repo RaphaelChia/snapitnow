@@ -3,7 +3,11 @@
 import { auth } from "@/auth"
 import { z } from "zod"
 import { listHostSessions, getSessionById } from "@/lib/db/queries/sessions"
-import { createSession, deleteSession } from "@/lib/db/mutations/sessions"
+import {
+  createSession,
+  deleteSession,
+  activateSession,
+} from "@/lib/db/mutations/sessions"
 import { listSessionPhotos } from "@/lib/db/queries/photos"
 import { getStorageService, BUCKET } from "@/lib/storage"
 import type { Session, Photo } from "@/lib/db/types"
@@ -106,4 +110,16 @@ export async function createNewSession(
 export async function removeSession(sessionId: string): Promise<void> {
   const userId = await getAuthenticatedUserId()
   await deleteSession(sessionId, userId)
+}
+
+const activateSessionSchema = z.string().uuid()
+
+export async function activateSessionForDev(sessionId: string): Promise<Session> {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Dev activation is not available in production")
+  }
+
+  const userId = await getAuthenticatedUserId()
+  const parsedId = activateSessionSchema.parse(sessionId)
+  return activateSession(parsedId, userId)
 }

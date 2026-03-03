@@ -15,11 +15,12 @@ SnapItNow is a browser-based, film-inspired photo session app:
 ### Guest POV
 
 - Scan QR code from event signage/tablet.
-- Log in quickly (magic link/OTP).
+- Log in quickly (magic link or Google OAuth — guest chooses).
 - Enter session camera screen with limited controls.
 - Choose filter only if host enabled preset choice.
 - Tap capture -> photo is auto-uploaded immediately.
 - Shot counter decreases; when roll is finished, capture is locked.
+- After using at least half the roll, guest unlocks the session gallery to view all photos.
 
 ### Host/Organizer POV
 
@@ -45,6 +46,16 @@ Implementation notes:
 - Use atomic flow: `capture -> store temp blob -> create photo record -> upload -> finalize`.
 - Prevent duplicate submission with idempotency key per capture event.
 - Lock capture button during in-flight upload to avoid double taps.
+
+## Guest Photo Gallery Access
+
+Guests can view all session photos **only after using at least half their roll**.
+
+- Purpose: encourage every guest to actively participate before browsing others' shots.
+- Example: on a 12-shot roll, the guest must take at least 6 photos before the gallery unlocks.
+- Before the threshold, the guest sees only their own photos (if any UI is provided) or a prompt to keep shooting.
+- After unlock, the guest can browse all session photos (from all guests).
+- The threshold check uses `shots_taken >= ceil(roll_preset / 2)` from the `guest_sessions` row.
 
 ## Roll Presets (Host Controls)
 
@@ -76,7 +87,7 @@ Per-guest shot tracking:
 - Frontend: Next.js web app (mobile-first camera UX).
 - Backend: Next.js API routes/server actions or lightweight service layer.
 - Database: Supabase Postgres (hosts, sessions, guest-session enrollment, photos, payments).
-- Auth: NextAuth v5 with Google OAuth for hosts; guest auth via magic link/OTP (to minimize event-friction).
+- Auth: NextAuth v5 with Google OAuth for hosts; guest auth via **magic link** (primary, one less step than OTP — enter email, tap link, done) with **Google OAuth as an optional alternative** for guests who prefer it.
 - Object storage (MVP): Supabase Storage on Pro plan.
 - Storage access pattern: provider-agnostic `StorageService` interface so underlying object store can be swapped later (Supabase <-> S3) without changing business logic.
 - Payments: Stripe Checkout (one-time payment per session).
@@ -259,20 +270,28 @@ Client Component
 1. **Foundation**
    - auth, host dashboard shell, session schema
    - mobile-first layout system (camera-first UX baseline)
-2. **Paid session activation**
-   - Stripe Checkout + webhook activation
-3. **Guest flow**
-   - QR join, password gate, camera capture, auto-upload, roll limits
+2. **Guest flow (secure-first)**
+   - keep session lifecycle status as the single gate (`draft` -> `active`) for guest access
+   - add a host-only **dev-mode** activation control to toggle session status from `draft` to `active` for local/testing environments only
+   - build guest entry route (`/s/:sessionId`) with social/magic-link auth and guest enrollment (`guest_sessions` upsert)
+   - enforce server-side identity and session checks on join/capture/upload/photo URL endpoints (no trust in raw query params)
+   - implement QR join, password gate, camera capture, auto-upload, roll limits
    - add baseline manual rate limiting on join/capture/auth routes
+3. **Paid session activation**
+   - Stripe Checkout + webhook integration
+   - on successful payment webhook, call the same activation path used by dev-mode toggle (`draft` -> `active`) to keep behavior consistent
 4. **Host gallery + retention**
    - browse/download photos, 30-day expiry automation
 5. **Hardening**
    - monitoring depth, retries, advanced anti-abuse controls, UX polish
 
-## Immediate Next Decisions
+## Resolved Decisions
 
-- Confirm guest auth method for MVP (`magic link` vs `OTP code`).
-- Confirm whether guests can view only their own photos or all session photos.
-- Confirm default filter preset list for MVP.
-- Define first version of `StorageService` interface and adapter contract.
+- **Guest auth method**: Magic link (primary) + Google OAuth (optional). Magic link is one fewer step than OTP — guest enters email, taps the link, done.
+- **Guest photo visibility**: Guests can view all session photos after taking at least half their roll (`shots_taken >= ceil(roll_preset / 2)`). This incentivizes participation before browsing.
+- **Default filter preset list**: `none`, `vintage`, `bw-classic`, `bw-high-contrast`, `cool-tone`, `warm-fade` (implemented in `lib/filters/presets.ts`).
+- **StorageService interface**: Defined with `upload`, `download`, `getSignedUrl`, `delete`, `deleteMany` (implemented in `lib/storage/`).
+
+## Remaining Decisions
+
 - Define baseline rate-limit policy matrix (limits per route/window for join, capture, auth).

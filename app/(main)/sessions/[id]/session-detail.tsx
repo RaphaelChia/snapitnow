@@ -1,9 +1,9 @@
 "use client"
 
-import { useSession } from "@/hooks/use-sessions"
+import { useSession, useActivateSessionDev } from "@/hooks/use-sessions"
 import { useSessionPhotos } from "@/hooks/use-photos"
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions"
-import { FILTER_PRESETS, type FilterId } from "@/lib/filters/presets"
+import { FILTER_PRESETS } from "@/lib/filters/presets"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -280,6 +280,8 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId)
+  const activateDevMutation = useActivateSessionDev()
+  const isDev = process.env.NODE_ENV !== "production"
 
   if (isLoading) {
     return (
@@ -341,8 +343,23 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
 
         {session.status === "draft" && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
-            This session is in <strong>draft</strong> mode. Guests cannot join
-            until the session is activated via payment.
+            <p>
+              This session is in <strong>draft</strong> mode. Guests cannot join
+              until the session is activated.
+            </p>
+            {isDev && (
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3"
+                disabled={activateDevMutation.isPending}
+                onClick={() => activateDevMutation.mutate(session.id)}
+              >
+                {activateDevMutation.isPending
+                  ? "Activating..."
+                  : "Activate session (Dev)"}
+              </Button>
+            )}
           </div>
         )}
       </div>
