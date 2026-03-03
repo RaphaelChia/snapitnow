@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useRequestOtp, useVerifyOtp } from "@/hooks/use-guest-auth"
 
 type GuestEntryClientProps = {
   sessionId: string
@@ -25,9 +26,10 @@ export function GuestEntryClient({
   const [password, setPassword] = useState("")
   const [otp, setOtp] = useState("")
   const [otpRequested, setOtpRequested] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const requestOtpMutation = useRequestOtp()
+  const verifyOtpMutation = useVerifyOtp()
 
   useEffect(() => {
     if (status !== "active") return
@@ -44,28 +46,18 @@ export function GuestEntryClient({
     e.preventDefault()
     setError(null)
     setMessage(null)
-    setIsSubmitting(true)
 
     try {
-      const res = await fetch("/api/guest/auth/request-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          email,
-          password: requiresPassword ? password : null,
-        }),
+      await requestOtpMutation.mutateAsync({
+        sessionId,
+        email,
+        password: requiresPassword ? password : null,
       })
-
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error || "Failed to request OTP")
 
       setOtpRequested(true)
       setMessage("Code sent. Check your email.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to request OTP")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -73,29 +65,21 @@ export function GuestEntryClient({
     e.preventDefault()
     setError(null)
     setMessage(null)
-    setIsSubmitting(true)
 
     try {
-      const res = await fetch("/api/guest/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          email,
-          otp,
-        }),
+      await verifyOtpMutation.mutateAsync({
+        sessionId,
+        email,
+        otp,
       })
-
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error || "Failed to verify OTP")
 
       router.replace(`/sessions/${sessionId}/camera`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify OTP")
-    } finally {
-      setIsSubmitting(false)
     }
   }
+
+  const isSubmitting = requestOtpMutation.isPending || verifyOtpMutation.isPending
 
   if (status !== "active") {
     return (
