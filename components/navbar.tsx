@@ -1,34 +1,43 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useSession, signOut } from "next-auth/react"
-import { Camera, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { Camera, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
-function UserAvatar({ src, name }: { src?: string | null; name?: string | null }) {
+function UserAvatar({
+  src,
+  name,
+}: {
+  src?: string | null;
+  name?: string | null;
+}) {
   if (src) {
     return (
-      <img
+      <Image
         src={src}
+        width={32}
+        height={32}
         alt={name ?? "User avatar"}
         className="size-8 rounded-full ring-1 ring-border"
         referrerPolicy="no-referrer"
       />
-    )
+    );
   }
 
-  const initial = name?.charAt(0)?.toUpperCase() ?? "?"
+  const initial = name?.charAt(0)?.toUpperCase() ?? "?";
   return (
     <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-1 ring-border">
       {initial}
     </div>
-  )
+  );
 }
 
 export function Navbar() {
-  const { data: session, status } = useSession()
-  const isLoading = status === "loading"
-
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
+  console.log("session", session);
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
       <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
@@ -49,10 +58,7 @@ export function Navbar() {
               <span className="hidden text-xs text-muted-foreground sm:inline">
                 {session.user.name}
               </span>
-              <UserAvatar
-                src={session.user.image}
-                name={session.user.name}
-              />
+              <UserAvatar src={session.user.image} name={session.user.name} />
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -70,5 +76,5 @@ export function Navbar() {
         </div>
       </nav>
     </header>
-  )
+  );
 }

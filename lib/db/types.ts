@@ -449,3 +449,16 @@ export const Constants = {
     Enums: {},
   },
 } as const;
+
+export type Host = Tables<"hosts">;
+export type Photo = Tables<"photos">;
+export type GuestSession = Tables<"guest_sessions">;
+export type GuestAuthChallenge = Tables<"guest_auth_challenges">;
+export type GuestIdentity = Tables<"guest_identities">;
+export type FilterMode = "fixed" | "preset";
+export type SessionStatus = "draft" | "active" | "expired";
+export type Session = Omit<Tables<"sessions">, "filter_mode" | "allowed_filters" | "status"> & {
+  filter_mode: FilterMode;
+  allowed_filters: string[] | null;
+  status: SessionStatus;
+};
