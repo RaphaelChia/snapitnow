@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { createServerClient } from "@/lib/db"
 import { getSessionById } from "@/lib/db/queries/sessions"
+import type { Database } from "@/lib/db/types"
 import { env } from "@/lib/env"
 import { createGuestOtpCode, hashGuestOtp } from "@/lib/guest-auth"
 import { sendEmail } from "@/utils/emailer"
@@ -47,12 +48,14 @@ export async function POST(req: NextRequest) {
     const otpHash = hashGuestOtp(sessionId, email, otp)
 
     const db = createServerClient()
-    const { error: insertError } = await db.from("guest_auth_challenges").insert({
+    const challengeInsert: Database["public"]["Tables"]["guest_auth_challenges"]["Insert"] = {
       session_id: sessionId,
       email: email.toLowerCase(),
       otp_hash: otpHash,
       expires_at: expiresAt,
-    } as never)
+    }
+
+    const { error: insertError } = await db.from("guest_auth_challenges").insert(challengeInsert)
 
     if (insertError) throw insertError
 

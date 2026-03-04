@@ -1,23 +1,27 @@
 import "server-only"
 import { createServerClient } from "../index"
-import type { Host } from "../types"
+import type { Database } from "../types"
 
-export async function upsertHost(host: Omit<Host, "created_at">): Promise<Host> {
+type HostRow = Database["public"]["Tables"]["hosts"]["Row"]
+type HostInsertPayload = Database["public"]["Tables"]["hosts"]["Insert"]
+type UpsertHostInput = Pick<HostInsertPayload, "id" | "email" | "name" | "image">
+
+export async function upsertHost(host: UpsertHostInput): Promise<HostRow> {
   const db = createServerClient()
-  const { data, error } = await db
+  const upsertPayload: HostInsertPayload = {
+    id: host.id,
+    email: host.email,
+    name: host.name,
+    image: host.image,
+    last_login_at: new Date().toISOString(),
+  }
+
+  const { data: updatedHost, error: updateError } = await db
     .from("hosts")
-    .upsert(
-      {
-        id: host.id,
-        email: host.email,
-        name: host.name,
-        image: host.image,
-      },
-      { onConflict: "id" }
-    )
+    .upsert(upsertPayload, { onConflict: "email" })
     .select()
     .single()
 
-  if (error) throw error
-  return data as Host
+  if (updateError) throw updateError
+  return updatedHost as HostRow
 }

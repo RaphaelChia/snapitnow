@@ -1,6 +1,6 @@
 import "server-only"
 import { createServerClient } from "../index"
-import type { Photo } from "../types"
+import type { Database, Photo } from "../types"
 
 export interface CreatePhotoInput {
   session_id: string
@@ -14,19 +14,20 @@ export async function createPhotoRecord(input: CreatePhotoInput): Promise<Photo>
 
   const photoId = crypto.randomUUID()
   const objectKey = `sessions/${input.session_id}/raw/${photoId}.jpg`
+  const photoInsert: Database["public"]["Tables"]["photos"]["Insert"] = {
+    session_id: input.session_id,
+    host_id: input.host_id,
+    guest_user_id: input.guest_user_id,
+    object_key: objectKey,
+    filter_used: input.filter_used,
+    status: "pending_upload",
+    capture_committed_at: new Date().toISOString(),
+    delete_after: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  }
 
   const { data, error } = await db
     .from("photos")
-    .insert({
-      session_id: input.session_id,
-      host_id: input.host_id,
-      guest_user_id: input.guest_user_id,
-      object_key: objectKey,
-      filter_used: input.filter_used,
-      status: "pending_upload",
-      capture_committed_at: new Date().toISOString(),
-      delete_after: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    } as never)
+    .insert(photoInsert)
     .select()
     .single()
 
@@ -36,9 +37,13 @@ export async function createPhotoRecord(input: CreatePhotoInput): Promise<Photo>
 
 export async function markPhotoUploaded(photoId: string): Promise<void> {
   const db = createServerClient()
+  const uploadUpdate: Database["public"]["Tables"]["photos"]["Update"] = {
+    status: "uploaded",
+    uploaded_at: new Date().toISOString(),
+  }
   const { error } = await db
     .from("photos")
-    .update({ status: "uploaded", uploaded_at: new Date().toISOString() } as never)
+    .update(uploadUpdate)
     .eq("id", photoId)
 
   if (error) throw error
@@ -46,9 +51,12 @@ export async function markPhotoUploaded(photoId: string): Promise<void> {
 
 export async function markPhotoFailed(photoId: string): Promise<void> {
   const db = createServerClient()
+  const failedUpdate: Database["public"]["Tables"]["photos"]["Update"] = {
+    status: "failed",
+  }
   const { error } = await db
     .from("photos")
-    .update({ status: "failed" } as never)
+    .update(failedUpdate)
     .eq("id", photoId)
 
   if (error) throw error
@@ -60,14 +68,15 @@ export async function markPhotoProcessed(
   thumbnailKey: string,
 ): Promise<void> {
   const db = createServerClient()
+  const processedUpdate: Database["public"]["Tables"]["photos"]["Update"] = {
+    status: "processed",
+    filtered_key: filteredKey,
+    thumbnail_key: thumbnailKey,
+    processed_at: new Date().toISOString(),
+  }
   const { error } = await db
     .from("photos")
-    .update({
-      status: "processed",
-      filtered_key: filteredKey,
-      thumbnail_key: thumbnailKey,
-      processed_at: new Date().toISOString(),
-    } as never)
+    .update(processedUpdate)
     .eq("id", photoId)
 
   if (error) throw error

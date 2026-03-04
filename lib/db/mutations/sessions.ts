@@ -1,6 +1,6 @@
 import "server-only"
 import { createServerClient } from "../index"
-import type { Session, FilterMode } from "../types"
+import type { Database, Session, FilterMode } from "../types"
 
 export interface CreateSessionInput {
   host_id: string
@@ -14,17 +14,18 @@ export interface CreateSessionInput {
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
   const db = createServerClient()
+  const sessionInsert: Database["public"]["Tables"]["sessions"]["Insert"] = {
+    host_id: input.host_id,
+    title: input.title,
+    password_hash: input.password_hash ?? null,
+    filter_mode: input.filter_mode,
+    fixed_filter: input.fixed_filter ?? null,
+    allowed_filters: input.allowed_filters ?? null,
+    roll_preset: input.roll_preset,
+  }
   const { data, error } = await db
     .from("sessions")
-    .insert({
-      host_id: input.host_id,
-      title: input.title,
-      password_hash: input.password_hash ?? null,
-      filter_mode: input.filter_mode,
-      fixed_filter: input.fixed_filter ?? null,
-      allowed_filters: input.allowed_filters ?? null,
-      roll_preset: input.roll_preset,
-    })
+    .insert(sessionInsert)
     .select()
     .single()
 
@@ -48,12 +49,13 @@ export async function activateSession(
   hostId: string,
 ): Promise<Session> {
   const db = createServerClient()
+  const activateUpdate: Database["public"]["Tables"]["sessions"]["Update"] = {
+    status: "active",
+    activated_at: new Date().toISOString(),
+  }
   const { data, error } = await db
     .from("sessions")
-    .update({
-      status: "active",
-      activated_at: new Date().toISOString(),
-    } as never)
+    .update(activateUpdate)
     .eq("id", sessionId)
     .eq("host_id", hostId)
     .eq("status", "draft")

@@ -5,7 +5,7 @@ import { createPhotoRecord, markPhotoUploaded, markPhotoFailed } from "@/lib/db/
 import { getStorageService, BUCKET } from "@/lib/storage"
 import { createServerClient } from "@/lib/db"
 import { processPhoto } from "@/lib/filters/process-photo"
-import type { GuestSession } from "@/lib/db/types"
+import type { Database, GuestSession } from "@/lib/db/types"
 import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
 const uploadSchema = z.object({
@@ -84,13 +84,14 @@ export async function POST(req: NextRequest) {
 
       await markPhotoUploaded(photo.id)
 
+      const guestSessionUpdate: Database["public"]["Tables"]["guest_sessions"]["Update"] = {
+        shots_taken: guestSession.shots_taken + 1,
+        shots_remaining: guestSession.shots_remaining - 1,
+        updated_at: new Date().toISOString(),
+      }
       await db
         .from("guest_sessions")
-        .update({
-          shots_taken: guestSession.shots_taken + 1,
-          shots_remaining: guestSession.shots_remaining - 1,
-          updated_at: new Date().toISOString(),
-        } as never)
+        .update(guestSessionUpdate)
         .eq("id", guestSession.id)
 
       after(async () => {

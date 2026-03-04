@@ -9,7 +9,7 @@ import {
   hashGuestOtp,
 } from "@/lib/guest-auth"
 import { checkRateLimit } from "@/lib/rate-limit"
-import type { GuestAuthChallenge, GuestIdentity } from "@/lib/db/types"
+import type { Database, GuestAuthChallenge, GuestIdentity } from "@/lib/db/types"
 
 const verifyOtpSchema = z.object({
   sessionId: z.string().uuid(),
@@ -70,16 +70,23 @@ export async function POST(req: NextRequest) {
 
     const expectedHash = hashGuestOtp(sessionId, normalizedEmail, otp)
     if (expectedHash !== challenge.otp_hash) {
+      const challengeUpdate: Database["public"]["Tables"]["guest_auth_challenges"]["Update"] = {
+        attempts: challenge.attempts + 1,
+      }
       await db
         .from("guest_auth_challenges")
-        .update({ attempts: challenge.attempts + 1 } as never)
+        .update(challengeUpdate)
         .eq("id", challenge.id)
       return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 })
     }
 
+    const consumeChallengeUpdate: Database["public"]["Tables"]["guest_auth_challenges"]["Update"] =
+      {
+        consumed_at: new Date().toISOString(),
+      }
     const { data: consumedChallenge, error: consumedError } = await db
       .from("guest_auth_challenges")
-      .update({ consumed_at: new Date().toISOString() } as never)
+      .update(consumeChallengeUpdate)
       .eq("id", challenge.id)
       .is("consumed_at", null)
       .select("*")
@@ -89,35 +96,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "OTP already used" }, { status: 400 })
     }
 
+    const guestIdentityUpsert: Database["public"]["Tables"]["guest_identities"]["Insert"] = {
+      email: normalizedEmail,
+    }
     const { data: guestIdentity, error: identityError } = await db
       .from("guest_identities")
-      .upsert(
-        {
-          email: normalizedEmail,
-        } as never,
-        { onConflict: "email" },
-      )
+      .upsert(guestIdentityUpsert, { onConflict: "email" })
       .select("*")
       .single()
 
     if (identityError) throw identityError
     const guest = guestIdentity as GuestIdentity
 
+    const guestSessionUpsert: Database["public"]["Tables"]["guest_sessions"]["Insert"] = {
+      session_id: sessionId,
+      guest_user_id: guest.id,
+      shots_taken: 0,
+      shots_remaining: session.roll_preset,
+      updated_at: new Date().toISOString(),
+    }
     const { error: guestSessionError } = await db
       .from("guest_sessions")
-      .upsert(
-        {
-          session_id: sessionId,
-          guest_user_id: guest.id,
-          shots_taken: 0,
-          shots_remaining: session.roll_preset,
-          updated_at: new Date().toISOString(),
-        } as never,
-        {
-          onConflict: "session_id,guest_user_id",
-          ignoreDuplicates: true,
-        },
-      )
+      .upsert(guestSessionUpsert, {
+        onConflict: "session_id,guest_user_id",
+        ignoreDuplicates: true,
+      })
 
     if (guestSessionError) throw guestSessionError
 

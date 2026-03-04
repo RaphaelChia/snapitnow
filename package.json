@@ -34,12 +34,13 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
     "@types/nodemailer": "^6.4.17",
+    "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sharp": "^0.32.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "supabase": "^2.76.16",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
