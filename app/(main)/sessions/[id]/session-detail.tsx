@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useSession, useActivateSessionDev } from "@/hooks/use-sessions"
-import { useSessionPhotos } from "@/hooks/use-photos"
-import type { PhotoWithUrl } from "@/app/(main)/sessions/actions"
-import { FILTER_PRESETS } from "@/lib/filters/presets"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useSession, useActivateSessionDev } from "@/hooks/use-sessions";
+import { useSessionPhotos } from "@/hooks/use-photos";
+import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
+import { FILTER_PRESETS } from "@/lib/filters/presets";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   ArrowLeft,
   Copy,
@@ -23,39 +23,44 @@ import {
   ImageIcon,
   QrCode,
   Download,
-} from "lucide-react"
-import Link from "next/link"
-import { useState, useCallback } from "react"
-import { QRCodeSVG } from "qrcode.react"
+} from "lucide-react";
+import Link from "next/link";
+import { useState, useCallback } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
   active: "default",
   expired: "destructive",
-}
+};
 
 function getFilterName(id: string): string {
-  return FILTER_PRESETS.find((p) => p.id === id)?.name ?? id
+  return FILTER_PRESETS.find((p) => p.id === id)?.name ?? id;
 }
 
 function getGuestUrl(sessionId: string): string {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}/s/${sessionId}`
+    return `${window.location.origin}/s/${sessionId}`;
   }
-  return `/s/${sessionId}`
+  return `/s/${sessionId}`;
 }
 
 function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [text])
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
 
   return (
-    <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleCopy}
+      className="gap-1.5"
+    >
       {copied ? (
         <>
           <Check className="size-3.5" />
@@ -68,12 +73,12 @@ function CopyButton({ text }: { text: string }) {
         </>
       )}
     </Button>
-  )
+  );
 }
 
 function ShareSection({ sessionId }: { sessionId: string }) {
-  const guestUrl = getGuestUrl(sessionId)
-  const [showQr, setShowQr] = useState(true)
+  const guestUrl = getGuestUrl(sessionId);
+  const [showQr, setShowQr] = useState(true);
 
   return (
     <Card>
@@ -95,7 +100,7 @@ function ShareSection({ sessionId }: { sessionId: string }) {
         </div>
 
         {showQr && (
-          <div className="flex justify-center rounded-lg border bg-white p-6">
+          <div className="flex justify-center rounded-lg  bg-white p-6">
             <QRCodeSVG
               value={guestUrl}
               size={200}
@@ -115,7 +120,7 @@ function ShareSection({ sessionId }: { sessionId: string }) {
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function ConfigSummary({
@@ -125,11 +130,11 @@ function ConfigSummary({
   allowedFilters,
   hasPassword,
 }: {
-  rollPreset: number
-  filterMode: string
-  fixedFilter: string | null
-  allowedFilters: string[] | null
-  hasPassword: boolean
+  rollPreset: number;
+  filterMode: string;
+  fixedFilter: string | null;
+  allowedFilters: string[] | null;
+  hasPassword: boolean;
 }) {
   return (
     <Card>
@@ -162,36 +167,40 @@ function ConfigSummary({
             </>
           )}
 
-          {filterMode === "preset" && allowedFilters && allowedFilters.length > 0 && (
-            <>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <ImageIcon className="size-3.5" />
-                Filters
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {allowedFilters.map((f) => (
-                  <Badge key={f} variant="secondary" className="text-xs">
-                    {getFilterName(f)}
-                  </Badge>
-                ))}
-              </div>
-            </>
-          )}
+          {filterMode === "preset" &&
+            allowedFilters &&
+            allowedFilters.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ImageIcon className="size-3.5" />
+                  Filters
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {allowedFilters.map((f) => (
+                    <Badge key={f} variant="secondary" className="text-xs">
+                      {getFilterName(f)}
+                    </Badge>
+                  ))}
+                </div>
+              </>
+            )}
 
           <div className="flex items-center gap-2 text-muted-foreground">
             <Lock className="size-3.5" />
             Password
           </div>
-          <div className="font-medium">{hasPassword ? "Enabled" : "Open access"}</div>
+          <div className="font-medium">
+            {hasPassword ? "Enabled" : "Open access"}
+          </div>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function PhotoCard({ photo }: { photo: PhotoWithUrl }) {
-  const url = photo.thumbnailUrl ?? photo.signedUrl
-  if (!url) return null
+  const url = photo.thumbnailUrl ?? photo.signedUrl;
+  if (!url) return null;
 
   return (
     <div className="group relative aspect-square overflow-hidden rounded-lg border bg-muted">
@@ -215,17 +224,20 @@ function PhotoCard({ photo }: { photo: PhotoWithUrl }) {
       )}
       {photo.filter_used && (
         <div className="absolute bottom-1.5 left-1.5">
-          <Badge variant="secondary" className="bg-black/50 text-[10px] text-white backdrop-blur-sm">
+          <Badge
+            variant="secondary"
+            className="bg-black/50 text-[10px] text-white backdrop-blur-sm"
+          >
             {getFilterName(photo.filter_used)}
           </Badge>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function PhotoGallery({ sessionId }: { sessionId: string }) {
-  const { data: photos, isLoading, error } = useSessionPhotos(sessionId)
+  const { data: photos, isLoading, error } = useSessionPhotos(sessionId);
 
   return (
     <Card>
@@ -246,7 +258,10 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
         {isLoading && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-lg bg-muted" />
+              <div
+                key={i}
+                className="aspect-square animate-pulse rounded-lg bg-muted"
+              />
             ))}
           </div>
         )}
@@ -275,13 +290,13 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
-  const { data: session, isLoading, error } = useSession(sessionId)
-  const activateDevMutation = useActivateSessionDev()
-  const isDev = process.env.NODE_ENV !== "production"
+  const { data: session, isLoading, error } = useSession(sessionId);
+  const activateDevMutation = useActivateSessionDev();
+  const isDev = process.env.NODE_ENV !== "production";
 
   if (isLoading) {
     return (
@@ -292,7 +307,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
           <div className="h-64 animate-pulse rounded-lg bg-muted" />
         </div>
       </main>
-    )
+    );
   }
 
   if (error || !session) {
@@ -310,7 +325,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
           </Button>
         </div>
       </main>
-    )
+    );
   }
 
   return (
@@ -378,5 +393,5 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         <PhotoGallery sessionId={sessionId} />
       </div>
     </main>
-  )
+  );
 }
