@@ -11,57 +11,40 @@ import { FilterStrip } from "./filter-strip";
 import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { Badge } from "@/components/ui/badge";
-import type { Session, GuestSession } from "@/lib/db/types";
+import {
+  GuestApiError,
+  useGuestCameraInit,
+} from "@/hooks/use-guest-auth";
 
 export default function CameraPage() {
   const { id: sessionId } = useParams<{ id: string }>();
   const router = useRouter();
   const cameraRef = useRef<CameraViewfinderHandle>(null);
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [guestSession, setGuestSession] = useState<GuestSession | null>(null);
-  const [activeFilterId, setActiveFilterId] = useState<FilterId>("none");
-  const [shotsRemaining, setShotsRemaining] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedFilterId, setSelectedFilterId] = useState<FilterId | null>(null);
+  const [capturedCount, setCapturedCount] = useState(0);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const cameraInitQuery = useGuestCameraInit(sessionId);
+  const session = cameraInitQuery.data?.session ?? null;
+  const guestSession = cameraInitQuery.data?.guestSession ?? null;
+  const isUnauthenticated =
+    cameraInitQuery.error instanceof GuestApiError && cameraInitQuery.error.status === 401;
+  const queryErrorMessage =
+    cameraInitQuery.isError && !isUnauthenticated
+      ? cameraInitQuery.error instanceof Error
+        ? cameraInitQuery.error.message
+        : "Failed to load"
+      : null;
+  const error = runtimeError ?? queryErrorMessage;
 
   useEffect(() => {
-    if (!sessionId) return;
-
-    async function loadSession() {
-      try {
-        const res = await fetch(`/api/sessions/${sessionId}/camera-init`);
-        if (res.status === 401) {
-          router.replace(`/s/${sessionId}`);
-          return;
-        }
-        if (!res.ok) throw new Error("Failed to load session");
-
-        const data = await res.json();
-        setSession(data.session);
-        setGuestSession(data.guestSession);
-        setShotsRemaining(data.guestSession.shots_remaining);
-
-        if (data.session.filter_mode === "fixed" && data.session.fixed_filter) {
-          setActiveFilterId(data.session.fixed_filter as FilterId);
-        } else if (
-          data.session.filter_mode === "preset" &&
-          data.session.allowed_filters?.length
-        ) {
-          setActiveFilterId(data.session.allowed_filters[0] as FilterId);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        setLoading(false);
-      }
+    if (isUnauthenticated) {
+      router.replace(`/s/${sessionId}`);
     }
-
-    loadSession();
-  }, [router, sessionId]);
+  }, [isUnauthenticated, router, sessionId]);
 
   const handleStreamError = useCallback(
-    (err: Error) => setError(err.message),
+    (err: Error) => setRuntimeError(err.message),
     []
   );
 
@@ -70,10 +53,10 @@ export default function CameraPage() {
   }, []);
 
   const handleUploadComplete = useCallback(() => {
-    setShotsRemaining((prev) => Math.max(0, prev - 1));
+    setCapturedCount((prev) => prev + 1);
   }, []);
 
-  if (loading) {
+  if (cameraInitQuery.isPending || isUnauthenticated) {
     return (
       <div className="flex h-dvh items-center justify-center bg-black">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -103,11 +86,20 @@ export default function CameraPage() {
     );
   }
 
+  const defaultFilterId: FilterId =
+    session.filter_mode === "fixed" && session.fixed_filter
+      ? (session.fixed_filter as FilterId)
+      : session.filter_mode === "preset" && session.allowed_filters?.length
+        ? (session.allowed_filters[0] as FilterId)
+        : "none";
+  const activeFilterId = selectedFilterId ?? defaultFilterId;
+
   const showFilterStrip =
     session.filter_mode === "preset" &&
     session.allowed_filters &&
     session.allowed_filters.length > 0;
-  const shotsTaken = Math.max(0, session.roll_preset - shotsRemaining);
+  const remainingShots = Math.max(0, guestSession.shots_remaining - capturedCount);
+  const shotsTaken = Math.max(0, session.roll_preset - remainingShots);
   const unlockThreshold = Math.ceil(session.roll_preset / 2);
   const galleryUnlocked = shotsTaken >= unlockThreshold;
 
@@ -123,17 +115,17 @@ export default function CameraPage() {
         <FilterStrip
           allowedFilters={session.allowed_filters as FilterId[]}
           activeFilterId={activeFilterId}
-          onSelect={setActiveFilterId}
+          onSelect={setSelectedFilterId}
         />
       )}
 
       <CaptureButton
         sessionId={sessionId}
         activeFilterId={activeFilterId}
-        shotsRemaining={shotsRemaining}
+        shotsRemaining={remainingShots}
         onCapture={handleCapture}
         onUploadComplete={handleUploadComplete}
-        onError={(msg) => setError(msg)}
+        onError={(msg) => setRuntimeError(msg)}
       />
 
       <div className="flex items-center justify-center gap-2 pb-6">

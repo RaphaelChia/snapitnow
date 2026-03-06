@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRequestOtp, useVerifyOtp } from "@/hooks/use-guest-auth";
+import {
+  GuestApiError,
+  useGuestCameraInit,
+  useRequestOtp,
+  useVerifyOtp,
+} from "@/hooks/use-guest-auth";
 
 type GuestEntryClientProps = {
   sessionId: string;
@@ -38,17 +43,13 @@ export function GuestEntryClient({
   const [message, setMessage] = useState<string | null>(null);
   const requestOtpMutation = useRequestOtp();
   const verifyOtpMutation = useVerifyOtp();
+  const cameraInitQuery = useGuestCameraInit(sessionId, status === "active");
 
   useEffect(() => {
-    if (status !== "active") return;
-
-    void (async () => {
-      const res = await fetch(`/api/sessions/${sessionId}/camera-init`);
-      if (res.ok) {
-        router.replace(`/sessions/${sessionId}/camera`);
-      }
-    })();
-  }, [router, sessionId, status]);
+    if (cameraInitQuery.data) {
+      router.replace(`/sessions/${sessionId}/camera`);
+    }
+  }, [cameraInitQuery.data, router, sessionId]);
 
   const requestOtp = useCallback(
     async (e: FormEvent) => {
@@ -104,6 +105,11 @@ export function GuestEntryClient({
   const isRequestSubmitting = requestOtpMutation.isPending;
   const isVerifySubmitting = verifyOtpMutation.isPending;
   const isRequestStep = authStep === "requestOtp";
+  const isCheckingPriorSession = status === "active" && cameraInitQuery.isPending;
+  const isUnauthenticated =
+    cameraInitQuery.error instanceof GuestApiError && cameraInitQuery.error.status === 401;
+  const cameraInitError =
+    cameraInitQuery.isError && !isUnauthenticated ? cameraInitQuery.error : null;
 
   if (status !== "active") {
     return (
@@ -115,6 +121,25 @@ export function GuestEntryClient({
               This session is not accepting guests yet.
             </CardDescription>
           </CardHeader>
+        </Card>
+      </main>
+    );
+  }
+
+  if (isCheckingPriorSession) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Join {title}</CardTitle>
+            <CardDescription>Checking for your previous session...</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/30 border-t-foreground" />
+            <p className="text-sm text-muted-foreground">
+              One moment while we check your access.
+            </p>
+          </CardContent>
         </Card>
       </main>
     );
@@ -212,6 +237,13 @@ export function GuestEntryClient({
 
           {message && (
             <p className="mt-4 text-sm text-emerald-600">{message}</p>
+          )}
+          {cameraInitError && (
+            <p className="mt-4 text-sm text-destructive">
+              {cameraInitError instanceof Error
+                ? cameraInitError.message
+                : "Failed to check previous access"}
+            </p>
           )}
           {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         </CardContent>
