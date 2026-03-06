@@ -26,6 +26,7 @@ export function useSessionPhotos(sessionId: string) {
 export type GuestPhotoWithUrl = Photo & {
   signedUrl: string | null
   thumbnailUrl: string | null
+  isOwnPhoto: boolean
 }
 
 export type GuestPhotoVisibility = {

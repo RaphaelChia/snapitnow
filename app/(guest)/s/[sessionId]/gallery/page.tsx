@@ -6,13 +6,20 @@ import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, ImageIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { useGuestSessionPhotos } from "@/hooks/use-photos"
 
 export default function GuestGalleryPage() {
-  const { id: sessionId } = useParams<{ id: string }>()
+  const { sessionId } = useParams<{ sessionId: string }>()
   const router = useRouter()
-  const { data, isLoading, error, refetch, isRefetching } = useGuestSessionPhotos(sessionId)
+  const { data, isLoading, error, refetch, isRefetching } =
+    useGuestSessionPhotos(sessionId)
 
   useEffect(() => {
     if (!(error instanceof Error)) return
@@ -34,10 +41,16 @@ export default function GuestGalleryPage() {
         <Card>
           <CardHeader>
             <CardTitle>Gallery unavailable</CardTitle>
-            <CardDescription>Could not load photos for this session.</CardDescription>
+            <CardDescription>
+              Could not load photos for this session.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button type="button" onClick={() => refetch()} disabled={isRefetching}>
+            <Button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+            >
               Try again
             </Button>
           </CardContent>
@@ -46,19 +59,28 @@ export default function GuestGalleryPage() {
     )
   }
 
-  const missingShots = Math.max(0, data.visibility.unlockThreshold - data.visibility.shotsTaken)
+  const missingShots = Math.max(
+    0,
+    data.visibility.unlockThreshold - data.visibility.shotsTaken,
+  )
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
-          href={`/sessions/${sessionId}/camera`}
+          href={`/s/${sessionId}/camera`}
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
           Back to camera
         </Link>
-        <Button type="button" variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isRefetching}
+        >
           {isRefetching ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
@@ -92,11 +114,22 @@ export default function GuestGalleryPage() {
                 if (!url) return null
 
                 return (
-                  <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
-                    <img src={url} alt="Session photo" className="h-full w-full object-cover" loading="lazy" />
-                    {!data.visibility.galleryUnlocked && (
+                  <div
+                    key={photo.id}
+                    className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
+                  >
+                    <img
+                      src={url}
+                      alt="Session photo"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    {photo.isOwnPhoto && (
                       <div className="absolute bottom-1.5 left-1.5">
-                        <Badge variant="secondary" className="bg-black/50 text-[10px] text-white">
+                        <Badge
+                          variant="secondary"
+                          className="bg-black/50 text-[10px] text-white"
+                        >
                           Your photo
                         </Badge>
                       </div>

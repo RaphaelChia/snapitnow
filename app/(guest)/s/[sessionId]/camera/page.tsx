@@ -16,13 +16,15 @@ import {
   useGuestCameraInit,
 } from "@/hooks/use-guest-auth";
 
-export default function CameraPage() {
-  const { id: sessionId } = useParams<{ id: string }>();
+export default function GuestCameraPage() {
+  const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const cameraRef = useRef<CameraViewfinderHandle>(null);
 
   const [selectedFilterId, setSelectedFilterId] = useState<FilterId | null>(null);
   const [capturedCount, setCapturedCount] = useState(0);
+  const [isCapturingOrUploading, setIsCapturingOrUploading] = useState(false);
+  const [frozenPreviewUrl, setFrozenPreviewUrl] = useState<string | null>(null);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const cameraInitQuery = useGuestCameraInit(sessionId);
   const session = cameraInitQuery.data?.session ?? null;
@@ -36,6 +38,13 @@ export default function CameraPage() {
         : "Failed to load"
       : null;
   const error = runtimeError ?? queryErrorMessage;
+  const defaultFilterId: FilterId =
+    session?.filter_mode === "fixed" && session.fixed_filter
+      ? (session.fixed_filter as FilterId)
+      : session?.filter_mode === "preset" && session.allowed_filters?.length
+        ? (session.allowed_filters[0] as FilterId)
+        : "none";
+  const activeFilterId = selectedFilterId ?? defaultFilterId;
 
   useEffect(() => {
     if (isUnauthenticated) {
@@ -49,12 +58,58 @@ export default function CameraPage() {
   );
 
   const handleCapture = useCallback(async () => {
-    return cameraRef.current?.captureFrame() ?? null;
-  }, []);
+    if (isCapturingOrUploading) return;
 
-  const handleUploadComplete = useCallback(() => {
-    setCapturedCount((prev) => prev + 1);
-  }, []);
+    setRuntimeError(null);
+    setIsCapturingOrUploading(true);
+
+    const capturedBlob = (await cameraRef.current?.captureFrame()) ?? null;
+    if (!capturedBlob) {
+      setRuntimeError("Failed to capture frame");
+      setIsCapturingOrUploading(false);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(capturedBlob);
+    setFrozenPreviewUrl(previewUrl);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", capturedBlob, "capture.jpg");
+      formData.append("sessionId", sessionId);
+      formData.append("filterUsed", activeFilterId);
+
+      const res = await fetch("/api/photos/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const message =
+          body && typeof body === "object" && "error" in body && typeof body.error === "string"
+            ? body.error
+            : "Upload failed";
+        throw new Error(message);
+      }
+
+      setCapturedCount((prev) => prev + 1);
+    } catch (err) {
+      setRuntimeError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setFrozenPreviewUrl(null);
+      setIsCapturingOrUploading(false);
+    }
+  }, [activeFilterId, isCapturingOrUploading, sessionId]);
+
+  useEffect(() => {
+    return () => {
+      if (frozenPreviewUrl) {
+        URL.revokeObjectURL(frozenPreviewUrl);
+      }
+    };
+  }, [frozenPreviewUrl]);
 
   if (cameraInitQuery.isPending || isUnauthenticated) {
     return (
@@ -86,14 +141,6 @@ export default function CameraPage() {
     );
   }
 
-  const defaultFilterId: FilterId =
-    session.filter_mode === "fixed" && session.fixed_filter
-      ? (session.fixed_filter as FilterId)
-      : session.filter_mode === "preset" && session.allowed_filters?.length
-        ? (session.allowed_filters[0] as FilterId)
-        : "none";
-  const activeFilterId = selectedFilterId ?? defaultFilterId;
-
   const showFilterStrip =
     session.filter_mode === "preset" &&
     session.allowed_filters &&
@@ -108,6 +155,8 @@ export default function CameraPage() {
       <CameraViewfinder
         ref={cameraRef}
         activeFilterId={activeFilterId}
+        isFrozen={Boolean(frozenPreviewUrl)}
+        frozenPreviewUrl={frozenPreviewUrl}
         onStreamError={handleStreamError}
       />
 
@@ -120,17 +169,14 @@ export default function CameraPage() {
       )}
 
       <CaptureButton
-        sessionId={sessionId}
-        activeFilterId={activeFilterId}
+        isBusy={isCapturingOrUploading}
         shotsRemaining={remainingShots}
         onCapture={handleCapture}
-        onUploadComplete={handleUploadComplete}
-        onError={(msg) => setRuntimeError(msg)}
       />
 
       <div className="flex items-center justify-center gap-2 pb-6">
         <Link
-          href={`/sessions/${sessionId}/gallery`}
+          href={`/s/${sessionId}/gallery`}
           className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
         >
           View gallery

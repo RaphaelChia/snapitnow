@@ -47,7 +47,7 @@ export function GuestEntryClient({
 
   useEffect(() => {
     if (cameraInitQuery.data) {
-      router.replace(`/sessions/${sessionId}/camera`);
+      router.replace(`/s/${sessionId}/camera`);
     }
   }, [cameraInitQuery.data, router, sessionId]);
 
@@ -94,7 +94,7 @@ export function GuestEntryClient({
           otp,
         });
 
-        router.replace(`/sessions/${sessionId}/camera`);
+        router.replace(`/s/${sessionId}/camera`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to verify OTP");
       }

@@ -9,6 +9,7 @@ import { getStorageService, BUCKET } from "@/lib/storage"
 type GuestPhotoWithUrl = Photo & {
   signedUrl: string | null
   thumbnailUrl: string | null
+  isOwnPhoto: boolean
 }
 
 export async function GET(
@@ -60,7 +61,8 @@ export async function GET(
               : Promise.resolve(null),
           ])
 
-          return { ...photo, signedUrl, thumbnailUrl }
+          const isOwnPhoto = photo.guest_user_id === guestAuth.guestUserId
+          return { ...photo, signedUrl, thumbnailUrl, isOwnPhoto }
         }),
     )
 

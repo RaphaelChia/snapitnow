@@ -10,7 +10,11 @@ interface FilterStripProps {
   onSelect: (id: FilterId) => void
 }
 
-export function FilterStrip({ allowedFilters, activeFilterId, onSelect }: FilterStripProps) {
+export function FilterStrip({
+  allowedFilters,
+  activeFilterId,
+  onSelect,
+}: FilterStripProps) {
   const presets = FILTER_PRESETS.filter((p) => allowedFilters.includes(p.id))
 
   return (
