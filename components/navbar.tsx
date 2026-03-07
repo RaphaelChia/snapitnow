@@ -36,7 +36,7 @@ function UserAvatar({
 
 function BrandMark() {
   return (
-    <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-romance transition-transform duration-200 hover:scale-[1.02]">
+    <div className="motion-safe-float flex size-9 items-center justify-center rounded-xl bg-primary shadow-romance transition-transform duration-200 hover:scale-[1.02]">
       <Heart className="size-4 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
     </div>
   );

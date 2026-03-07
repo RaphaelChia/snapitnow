@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
   CardTitle,
   CardDescription,
   CardFooter,
@@ -34,7 +33,7 @@ function SessionCard({ session }: { session: Session }) {
 
   return (
     <Link href={`/sessions/${session.id}`} className="block">
-      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <Card className="motion-safe-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <CardContent>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -84,8 +83,8 @@ function SessionCard({ session }: { session: Session }) {
 
 function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4 py-20 text-center">
-      <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-romance-secondary to-accent shadow-romance">
+    <div className="motion-safe-fade-up flex flex-1 flex-col items-center justify-center gap-5 px-4 py-20 text-center">
+      <div className="motion-safe-float flex size-20 items-center justify-center rounded-2xl bg-linear-to-br from-romance-secondary to-accent shadow-romance">
         <Camera className="size-10 text-primary" />
       </div>
       <div className="flex flex-col gap-2">
@@ -125,7 +124,7 @@ export function Dashboard() {
       {isLoading && (
         <div className="flex flex-col gap-3">
           {[1, 2].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
+            <div key={i} className="h-32 rounded-lg shimmer-soft" />
           ))}
         </div>
       )}
@@ -142,8 +141,14 @@ export function Dashboard() {
 
       {sessions && sessions.length > 0 && (
         <div className="flex flex-col gap-3">
-          {sessions.map((s) => (
-            <SessionCard key={s.id} session={s} />
+          {sessions.map((s, index) => (
+            <div
+              key={s.id}
+              className="motion-safe-fade-up"
+              style={{ animationDelay: `${index * 70}ms` }}
+            >
+              <SessionCard session={s} />
+            </div>
           ))}
         </div>
       )}

@@ -42,7 +42,7 @@ function FilterPreviewCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 ${
+      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 motion-safe-fade-up ${
         selected
           ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-romance"
           : "border-border bg-background hover:border-muted-foreground/30"
@@ -51,7 +51,7 @@ function FilterPreviewCard({
       <div className="relative h-16 w-full overflow-hidden rounded-md">
         {/* Sample scene: sky gradient + ground, filtered with CSS */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 motion-safe-drift"
           style={{ filter: FILTER_CSS[filterId] }}
         >
           <div className="absolute inset-0 bg-linear-to-b from-sky-400 via-orange-200 to-amber-800" />
@@ -60,7 +60,7 @@ function FilterPreviewCard({
         </div>
         {selected && (
           <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
+            <div className="pulse-romance flex h-6 w-6 items-center justify-center rounded-full bg-primary">
               <Check className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
           </div>
@@ -201,7 +201,7 @@ export function CreateSessionDialog({
           </div>
 
           {filterMode === "fixed" && (
-            <div className="flex flex-col gap-2">
+            <div className="motion-safe-fade-up flex flex-col gap-2">
               <Label>Choose a filter</Label>
               <p className="text-xs text-muted-foreground">
                 All guest photos will use this filter.
@@ -222,7 +222,7 @@ export function CreateSessionDialog({
           )}
 
           {filterMode === "preset" && (
-            <div className="flex flex-col gap-2">
+            <div className="motion-safe-fade-up flex flex-col gap-2">
               <Label>Choose filters for guests</Label>
               <p className="text-xs text-muted-foreground">
                 Pick 2-5 filters. Guests choose from these at capture time.

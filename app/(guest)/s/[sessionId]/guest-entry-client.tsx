@@ -165,83 +165,85 @@ export function GuestEntryClient({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isRequestStep ? (
-            <form className="space-y-4" onSubmit={requestOtp}>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              {requiresPassword && (
+          <div key={authStep} className="motion-safe-fade-up">
+            {isRequestStep ? (
+              <form className="space-y-4" onSubmit={requestOtp}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sessionPassword">Session password</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="sessionPassword"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
-              )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isRequestSubmitting}
-              >
-                {isRequestSubmitting ? "Sending code..." : "Get Started"}
-              </Button>
-            </form>
-          ) : (
-            <>
-              <form className="space-y-4" onSubmit={verifyOtp}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="otp">One-time code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                    required
-                  />
-                </div>
+                {requiresPassword && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sessionPassword">Session password</Label>
+                    <Input
+                      id="sessionPassword"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
 
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isVerifySubmitting}
+                  disabled={isRequestSubmitting}
                 >
-                  {isVerifySubmitting ? "Verifying..." : "Verify code"}
+                  {isRequestSubmitting ? "Sending code..." : "Get Started"}
                 </Button>
               </form>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-4 w-full"
-                disabled={isVerifySubmitting}
-                onClick={() => {
-                  requestOtpMutation.reset();
-                  verifyOtpMutation.reset();
-                  setAuthStep("requestOtp");
-                  setOtp("");
-                  setError(null);
-                  setMessage(null);
-                }}
-              >
-                Use a different email
-              </Button>
-            </>
-          )}
+            ) : (
+              <>
+                <form className="space-y-4" onSubmit={verifyOtp}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="otp">One-time code</Label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isVerifySubmitting}
+                  >
+                    {isVerifySubmitting ? "Verifying..." : "Verify code"}
+                  </Button>
+                </form>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-4 w-full"
+                  disabled={isVerifySubmitting}
+                  onClick={() => {
+                    requestOtpMutation.reset();
+                    verifyOtpMutation.reset();
+                    setAuthStep("requestOtp");
+                    setOtp("");
+                    setError(null);
+                    setMessage(null);
+                  }}
+                >
+                  Use a different email
+                </Button>
+              </>
+            )}
+          </div>
 
           {message && (
             <p className="mt-4 text-sm text-romance-success">{message}</p>

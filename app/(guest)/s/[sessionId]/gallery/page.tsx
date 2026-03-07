@@ -66,7 +66,7 @@ export default function GuestGalleryPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="motion-safe-fade-up mb-4 flex items-center justify-between gap-3">
         <Link
           href={`/s/${sessionId}/camera`}
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -85,7 +85,7 @@ export default function GuestGalleryPage() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="motion-safe-fade-up">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="size-4" />
@@ -102,21 +102,27 @@ export default function GuestGalleryPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {data.photos.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No moments yet. Start capturing and check back soon.
-            </p>
+            <div className="flex flex-col items-center gap-2 py-6 text-center">
+              <div className="motion-safe-float flex size-12 items-center justify-center rounded-xl bg-muted">
+                <ImageIcon className="size-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                No moments yet. Start capturing and check back soon.
+              </p>
+            </div>
           )}
 
           {data.photos.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {data.photos.map((photo) => {
+              {data.photos.map((photo, index) => {
                 const url = photo.thumbnailUrl ?? photo.signedUrl
                 if (!url) return null
 
                 return (
                 <div
                   key={photo.id}
-                  className="relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
+                  className="motion-safe-fade-up relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
+                  style={{ animationDelay: `${index * 45}ms` }}
                 >
                     <img
                       src={url}
