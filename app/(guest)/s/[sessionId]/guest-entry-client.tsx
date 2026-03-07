@@ -105,11 +105,15 @@ export function GuestEntryClient({
   const isRequestSubmitting = requestOtpMutation.isPending;
   const isVerifySubmitting = verifyOtpMutation.isPending;
   const isRequestStep = authStep === "requestOtp";
-  const isCheckingPriorSession = status === "active" && cameraInitQuery.isPending;
+  const isCheckingPriorSession =
+    status === "active" && cameraInitQuery.isPending;
   const isUnauthenticated =
-    cameraInitQuery.error instanceof GuestApiError && cameraInitQuery.error.status === 401;
+    cameraInitQuery.error instanceof GuestApiError &&
+    cameraInitQuery.error.status === 401;
   const cameraInitError =
-    cameraInitQuery.isError && !isUnauthenticated ? cameraInitQuery.error : null;
+    cameraInitQuery.isError && !isUnauthenticated
+      ? cameraInitQuery.error
+      : null;
 
   if (status !== "active") {
     return (
@@ -118,7 +122,7 @@ export function GuestEntryClient({
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
-              This session is not accepting guests yet.
+              This wedding memory isn't open for guests yet.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -132,12 +136,14 @@ export function GuestEntryClient({
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Join {title}</CardTitle>
-            <CardDescription>Checking for your previous session...</CardDescription>
+            <CardDescription>
+              Checking if you've joined before...
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/30 border-t-foreground" />
             <p className="text-sm text-muted-foreground">
-              One moment while we check your access.
+              One moment while we find your memories.
             </p>
           </CardContent>
         </Card>
@@ -149,11 +155,13 @@ export function GuestEntryClient({
     <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Join {title}</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Join the Celebration of {title}
+          </CardTitle>
           <CardDescription>
-            {isRequestStep
-              ? "Enter your email to receive a one-time code."
-              : `Enter the code sent to ${email}.`}
+            Everyone is given a limited number of shots to capture everything in
+            the moment.
+            {isRequestStep ? "" : `Enter the code we sent to ${email}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,7 +196,7 @@ export function GuestEntryClient({
                 className="w-full"
                 disabled={isRequestSubmitting}
               >
-                {isRequestSubmitting ? "Sending code..." : "Send code"}
+                {isRequestSubmitting ? "Sending code..." : "Get Started"}
               </Button>
             </form>
           ) : (
@@ -236,7 +244,7 @@ export function GuestEntryClient({
           )}
 
           {message && (
-            <p className="mt-4 text-sm text-emerald-600">{message}</p>
+            <p className="mt-4 text-sm text-romance-success">{message}</p>
           )}
           {cameraInitError && (
             <p className="mt-4 text-sm text-destructive">

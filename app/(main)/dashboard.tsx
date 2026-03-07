@@ -23,12 +23,18 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   expired: "destructive",
 };
 
+const statusLabel: Record<string, string> = {
+  draft: "Getting ready",
+  active: "Live",
+  expired: "Ended",
+};
+
 function SessionCard({ session }: { session: Session }) {
   const deleteMutation = useDeleteSession();
 
   return (
     <Link href={`/sessions/${session.id}`} className="block">
-      <Card className="transition-shadow hover:shadow-md">
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <CardContent>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -39,7 +45,7 @@ function SessionCard({ session }: { session: Session }) {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={statusVariant[session.status] ?? "secondary"}>
-                {session.status}
+                {statusLabel[session.status] ?? session.status}
               </Badge>
               <ChevronRight className="size-4 text-muted-foreground" />
             </div>
@@ -78,19 +84,19 @@ function SessionCard({ session }: { session: Session }) {
 
 function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
-        <Camera className="size-8 text-muted-foreground" />
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4 py-20 text-center">
+      <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-romance-secondary to-accent shadow-romance">
+        <Camera className="size-10 text-primary" />
       </div>
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">No sessions yet</h2>
-        <p className="text-sm text-muted-foreground">
-          Create your first photo session to get started.
+      <div className="flex flex-col gap-2">
+        <h2 className="font-display text-xl font-semibold">No wedding memories yet</h2>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Start your first wedding memory and invite guests to capture moments together.
         </p>
       </div>
-      <Button size="lg" className="mt-2 h-11 gap-2" onClick={onCreateClick}>
+      <Button size="lg" className="mt-2 gap-2" onClick={onCreateClick}>
         <Plus className="size-4" />
-        Create session
+        Start a wedding memory
       </Button>
     </div>
   );
@@ -103,15 +109,15 @@ export function Dashboard() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-tight">Sessions</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Your Wedding Memories</h1>
         {sessions && sessions.length > 0 && (
           <Button
             size="default"
-            className="gap-1.5"
+            className="gap-2"
             onClick={() => setDialogOpen(true)}
           >
-            <Plus className="size-3.5" />
-            New
+            <Plus className="size-4" />
+            New memory
           </Button>
         )}
       </div>

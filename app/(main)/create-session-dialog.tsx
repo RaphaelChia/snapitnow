@@ -38,9 +38,9 @@ function FilterPreviewCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-2 transition-all ${
+      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 ${
         selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+          ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-romance"
           : "border-border bg-background hover:border-muted-foreground/30"
       }`}
     >
@@ -129,15 +129,15 @@ export function CreateSessionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create session</DialogTitle>
+          <DialogTitle>Start a wedding memory</DialogTitle>
           <DialogDescription>
-            Configure your photo session. You can activate it after payment.
+            Set up your photo session. You can activate it when you're ready.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="title">Session title</Label>
+            <Label htmlFor="title">Memory title</Label>
             <Input
               id="title"
               placeholder="e.g. Sarah's Wedding"
@@ -150,16 +150,16 @@ export function CreateSessionDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Shots per guest</Label>
+            <Label>Moments per guest</Label>
             <div className="grid grid-cols-4 gap-2">
               {ROLL_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setRollPreset(preset)}
-                  className={`flex h-10 items-center justify-center rounded-md border text-sm font-medium transition-colors ${
+                  className={`flex h-11 min-h-[44px] items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
                     rollPreset === preset
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
                       : "border-border bg-background hover:bg-muted"
                   }`}
                 >
@@ -177,13 +177,13 @@ export function CreateSessionDialog({
                   key={mode}
                   type="button"
                   onClick={() => setFilterMode(mode)}
-                  className={`flex h-10 items-center justify-center rounded-md border text-sm font-medium transition-colors ${
+                  className={`flex h-11 min-h-[44px] items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
                     filterMode === mode
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
                       : "border-border bg-background hover:bg-muted"
                   }`}
                 >
-                  {mode === "fixed" ? "Fixed filter" : "Guest picks"}
+                  {mode === "fixed" ? "One filter for all" : "Guests choose"}
                 </button>
               ))}
             </div>
@@ -236,7 +236,7 @@ export function CreateSessionDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">
-              Session password{" "}
+              Access password{" "}
               <span className="text-muted-foreground">(optional)</span>
             </Label>
             <Input
@@ -258,7 +258,7 @@ export function CreateSessionDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={!canSubmit}>
-              {createMutation.isPending ? "Creating..." : "Create session"}
+              {createMutation.isPending ? "Creating..." : "Create memory"}
             </Button>
           </DialogFooter>
         </form>

@@ -26,10 +26,10 @@ export function FilterStrip({
             key={preset.id}
             onClick={() => onSelect(preset.id)}
             className={cn(
-              "flex shrink-0 flex-col items-center gap-1.5 rounded-lg px-3 py-2 transition-colors",
+              "flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-2.5 transition-all duration-200",
               isActive
-                ? "bg-white/15 ring-2 ring-white/60"
-                : "bg-white/5 hover:bg-white/10",
+                ? "bg-white/20 ring-2 ring-primary/50"
+                : "bg-white/5 hover:bg-white/12",
             )}
           >
             <div
@@ -38,8 +38,8 @@ export function FilterStrip({
             />
             <span
               className={cn(
-                "text-[11px] font-medium leading-tight",
-                isActive ? "text-white" : "text-white/70",
+                "text-xs font-medium leading-tight",
+                isActive ? "text-white" : "text-white/75",
               )}
             >
               {preset.name}

@@ -8,7 +8,9 @@ export default function GuestLayout({
   return (
     <>
       <GuestNavbar />
-      <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">{children}</div>
+      <div className="flex min-h-[calc(100dvh-4rem)] flex-col bg-gradient-to-b from-background to-muted/20">
+        {children}
+      </div>
     </>
   )
 }

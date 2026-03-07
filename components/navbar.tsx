@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Camera, LogOut } from "lucide-react";
+import { Heart, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -17,10 +17,10 @@ function UserAvatar({
     return (
       <Image
         src={src}
-        width={32}
-        height={32}
+        width={36}
+        height={36}
         alt={name ?? "User avatar"}
-        className="size-8 rounded-full ring-1 ring-border"
+        className="size-9 rounded-full ring-1 ring-border/60 shadow-romance"
         referrerPolicy="no-referrer"
       />
     );
@@ -28,8 +28,16 @@ function UserAvatar({
 
   const initial = name?.charAt(0)?.toUpperCase() ?? "?";
   return (
-    <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-1 ring-border">
+    <div className="flex size-9 items-center justify-center rounded-full bg-romance-secondary text-sm font-medium text-romance-text ring-1 ring-border/60">
       {initial}
+    </div>
+  );
+}
+
+function BrandMark() {
+  return (
+    <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-romance transition-transform duration-200 hover:scale-[1.02]">
+      <Heart className="size-4 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
     </div>
   );
 }
@@ -38,37 +46,35 @@ export function Navbar() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm h-14">
-      <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Camera className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md h-16">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
+        <Link href="/" className="flex items-center gap-2.5">
+          <BrandMark />
+          <span className="font-display text-base font-semibold tracking-tight text-foreground">
             SnapItNow
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {isLoading ? (
-            <div className="size-8 animate-pulse rounded-full bg-muted" />
+            <div className="size-9 animate-pulse rounded-full bg-muted" />
           ) : session?.user ? (
             <>
-              <span className="hidden text-xs text-muted-foreground sm:inline">
+              <span className="hidden text-sm text-muted-foreground sm:inline">
                 {session.user.name}
               </span>
               <UserAvatar src={session.user.image} name={session.user.name} />
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 aria-label="Sign out"
               >
-                <LogOut className="size-3.5" />
+                <LogOut className="size-4" />
               </Button>
             </>
           ) : (
-            <Button asChild variant="default" size="default">
+            <Button asChild variant="default" size="lg">
               <Link href="/login">Sign in</Link>
             </Button>
           )}
@@ -80,13 +86,11 @@ export function Navbar() {
 
 export function GuestNavbar() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm h-14">
-      <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Camera className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md h-16">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
+        <Link href="/" className="flex items-center gap-2.5">
+          <BrandMark />
+          <span className="font-display text-base font-semibold tracking-tight text-foreground">
             SnapItNow
           </span>
         </Link>

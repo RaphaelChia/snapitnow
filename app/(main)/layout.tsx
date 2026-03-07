@@ -8,7 +8,7 @@ export default function MainLayout({
   return (
     <>
       <Navbar />
-      <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
+      <div className="flex min-h-[calc(100dvh-4rem)] flex-col bg-gradient-to-b from-background to-muted/20">
         {children}
       </div>
     </>

@@ -121,11 +121,11 @@ export default function GuestCameraPage() {
 
   if (error) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-black px-6 text-center">
-        <p className="text-sm text-red-400">{error}</p>
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center">
+        <p className="text-sm text-red-300/90">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="text-sm font-medium text-white/70 underline underline-offset-2"
+          className="rounded-xl border border-white/25 px-4 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
         >
           Try again
         </button>
@@ -174,20 +174,20 @@ export default function GuestCameraPage() {
         onCapture={handleCapture}
       />
 
-      <div className="flex items-center justify-center gap-2 pb-6">
+      <div className="flex items-center justify-center gap-3 pb-6">
         <Link
           href={`/s/${sessionId}/gallery`}
-          className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
+          className="rounded-xl border border-white/25 hover:border-primary/40 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:bg-white/10"
         >
           View gallery
         </Link>
         <Badge
           variant={galleryUnlocked ? "default" : "secondary"}
-          className="text-[10px]"
+          className="text-xs border-white/20 bg-white/10 text-white/95 backdrop-blur-sm"
         >
           {galleryUnlocked
             ? "Full gallery unlocked"
-            : `${Math.max(0, unlockThreshold - shotsTaken)} more to unlock`}
+            : `${Math.max(0, unlockThreshold - shotsTaken)} more moments to unlock full album`}
         </Badge>
       </div>
     </div>
