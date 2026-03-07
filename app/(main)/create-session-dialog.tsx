@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useCreateSession } from "@/hooks/use-sessions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import { useCreateSession } from "@/hooks/use-sessions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import type { FilterMode } from "@/lib/db/types"
-import { FILTER_PRESETS, MVP_FILTER_IDS, type FilterId } from "@/lib/filters/presets"
-import { FILTER_CSS } from "@/lib/filters/css"
-import { Check } from "lucide-react"
+} from "@/components/ui/dialog";
+import type { FilterMode } from "@/lib/db/types";
+import {
+  FILTER_PRESETS,
+  MVP_FILTER_IDS,
+  type FilterId,
+} from "@/lib/filters/presets";
+import { FILTER_CSS } from "@/lib/filters/css";
+import { Check } from "lucide-react";
 
-const ROLL_PRESETS = [8, 12, 24, 36] as const
-const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id))
+const ROLL_PRESETS = [8, 12, 24, 36] as const;
+const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id));
 
 function FilterPreviewCard({
   filterId,
@@ -28,11 +32,11 @@ function FilterPreviewCard({
   selected,
   onSelect,
 }: {
-  filterId: FilterId
-  name: string
-  description: string
-  selected: boolean
-  onSelect: () => void
+  filterId: FilterId;
+  name: string;
+  description: string;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   return (
     <button
@@ -63,44 +67,50 @@ function FilterPreviewCard({
         )}
       </div>
       <div className="text-center">
-        <p className={`text-xs font-medium leading-tight ${selected ? "text-primary" : "text-foreground"}`}>
+        <p
+          className={`text-xs font-medium leading-tight ${
+            selected ? "text-primary" : "text-foreground"
+          }`}
+        >
           {name}
         </p>
-        <p className="text-[10px] leading-tight text-muted-foreground">{description}</p>
+        <p className="text-[10px] leading-tight text-muted-foreground">
+          {description}
+        </p>
       </div>
     </button>
-  )
+  );
 }
 
 export function CreateSessionDialog({
   open,
   onOpenChange,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const createMutation = useCreateSession()
+  const createMutation = useCreateSession();
 
-  const [title, setTitle] = useState("")
-  const [rollPreset, setRollPreset] = useState<number>(12)
-  const [filterMode, setFilterMode] = useState<FilterMode>("fixed")
-  const [fixedFilter, setFixedFilter] = useState<FilterId>("vintage")
-  const [allowedFilters, setAllowedFilters] = useState<FilterId[]>([])
-  const [password, setPassword] = useState("")
+  const [title, setTitle] = useState("");
+  const [rollPreset, setRollPreset] = useState<number>(12);
+  const [filterMode, setFilterMode] = useState<FilterMode>("fixed");
+  const [fixedFilter, setFixedFilter] = useState<FilterId>("vintage");
+  const [allowedFilters, setAllowedFilters] = useState<FilterId[]>([]);
+  const [password, setPassword] = useState("");
 
   function toggleAllowedFilter(id: FilterId) {
     setAllowedFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    )
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
+    );
   }
 
   const canSubmit =
     title.trim() &&
     !createMutation.isPending &&
-    (filterMode === "fixed" ? !!fixedFilter : allowedFilters.length >= 2)
+    (filterMode === "fixed" ? !!fixedFilter : allowedFilters.length >= 2);
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
 
     createMutation.mutate(
       {
@@ -113,16 +123,16 @@ export function CreateSessionDialog({
       },
       {
         onSuccess: () => {
-          setTitle("")
-          setRollPreset(12)
-          setFilterMode("fixed")
-          setFixedFilter("vintage")
-          setAllowedFilters([])
-          setPassword("")
-          onOpenChange(false)
+          setTitle("");
+          setRollPreset(12);
+          setFilterMode("fixed");
+          setFixedFilter("vintage");
+          setAllowedFilters([]);
+          setPassword("");
+          onOpenChange(false);
         },
-      },
-    )
+      }
+    );
   }
 
   return (
@@ -131,7 +141,8 @@ export function CreateSessionDialog({
         <DialogHeader>
           <DialogTitle>Start a wedding memory</DialogTitle>
           <DialogDescription>
-            Set up your photo session. You can activate it when you're ready.
+            Set up your photo session. You can activate it when you&apos;re
+            ready.
           </DialogDescription>
         </DialogHeader>
 
@@ -229,7 +240,9 @@ export function CreateSessionDialog({
                 ))}
               </div>
               {allowedFilters.length > 0 && allowedFilters.length < 2 && (
-                <p className="text-xs text-destructive">Select at least 2 filters.</p>
+                <p className="text-xs text-destructive">
+                  Select at least 2 filters.
+                </p>
               )}
             </div>
           )}
@@ -264,5 +277,5 @@ export function CreateSessionDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
