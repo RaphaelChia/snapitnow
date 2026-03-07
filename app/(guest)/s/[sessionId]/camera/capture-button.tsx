@@ -22,27 +22,27 @@ export function CaptureButton({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 py-4">
+    <div className="flex flex-col items-center gap-3 py-5">
       <button
         onClick={handleCapture}
         disabled={disabled}
         className={cn(
-          "flex h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-white/80 transition-all",
-          disabled ? "opacity-40" : "active:scale-90",
+          "flex h-[80px] w-[80px] items-center justify-center rounded-full border-[3px] border-white/90 transition-all duration-200",
+          disabled ? "opacity-40" : "active:scale-95 hover:border-primary/40",
         )}
         aria-label="Capture photo"
       >
         <div
           className={cn(
-            "h-[58px] w-[58px] rounded-full transition-colors",
-            isBusy ? "bg-red-500 animate-pulse" : "bg-white",
+            "h-[64px] w-[64px] rounded-full transition-colors duration-200",
+            isBusy ? "bg-primary animate-pulse" : "bg-white",
           )}
         />
       </button>
-      <span className="text-xs font-medium text-white/70">
+      <span className="text-sm font-medium text-white/80">
         {shotsRemaining <= 0
-          ? "Roll complete"
-          : `${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"} left`}
+          ? "All captured"
+          : `${shotsRemaining} moment${shotsRemaining === 1 ? "" : "s"} left`}
       </span>
     </div>
   )

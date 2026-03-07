@@ -105,11 +105,15 @@ export function GuestEntryClient({
   const isRequestSubmitting = requestOtpMutation.isPending;
   const isVerifySubmitting = verifyOtpMutation.isPending;
   const isRequestStep = authStep === "requestOtp";
-  const isCheckingPriorSession = status === "active" && cameraInitQuery.isPending;
+  const isCheckingPriorSession =
+    status === "active" && cameraInitQuery.isPending;
   const isUnauthenticated =
-    cameraInitQuery.error instanceof GuestApiError && cameraInitQuery.error.status === 401;
+    cameraInitQuery.error instanceof GuestApiError &&
+    cameraInitQuery.error.status === 401;
   const cameraInitError =
-    cameraInitQuery.isError && !isUnauthenticated ? cameraInitQuery.error : null;
+    cameraInitQuery.isError && !isUnauthenticated
+      ? cameraInitQuery.error
+      : null;
 
   if (status !== "active") {
     return (
@@ -118,7 +122,7 @@ export function GuestEntryClient({
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
-              This session is not accepting guests yet.
+              This wedding memory isn't open for guests yet.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -132,12 +136,14 @@ export function GuestEntryClient({
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Join {title}</CardTitle>
-            <CardDescription>Checking for your previous session...</CardDescription>
+            <CardDescription>
+              Checking if you've joined before...
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/30 border-t-foreground" />
             <p className="text-sm text-muted-foreground">
-              One moment while we check your access.
+              One moment while we find your memories.
             </p>
           </CardContent>
         </Card>
@@ -149,94 +155,98 @@ export function GuestEntryClient({
     <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Join {title}</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Join the Celebration of {title}
+          </CardTitle>
           <CardDescription>
-            {isRequestStep
-              ? "Enter your email to receive a one-time code."
-              : `Enter the code sent to ${email}.`}
+            Everyone is given a limited number of shots to capture everything in
+            the moment.
+            {isRequestStep ? "" : `Enter the code we sent to ${email}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isRequestStep ? (
-            <form className="space-y-4" onSubmit={requestOtp}>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              {requiresPassword && (
+          <div key={authStep} className="motion-safe-fade-up">
+            {isRequestStep ? (
+              <form className="space-y-4" onSubmit={requestOtp}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sessionPassword">Session password</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="sessionPassword"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
-              )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isRequestSubmitting}
-              >
-                {isRequestSubmitting ? "Sending code..." : "Send code"}
-              </Button>
-            </form>
-          ) : (
-            <>
-              <form className="space-y-4" onSubmit={verifyOtp}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="otp">One-time code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                    required
-                  />
-                </div>
+                {requiresPassword && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sessionPassword">Session password</Label>
+                    <Input
+                      id="sessionPassword"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
 
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isVerifySubmitting}
+                  disabled={isRequestSubmitting}
                 >
-                  {isVerifySubmitting ? "Verifying..." : "Verify code"}
+                  {isRequestSubmitting ? "Sending code..." : "Get Started"}
                 </Button>
               </form>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-4 w-full"
-                disabled={isVerifySubmitting}
-                onClick={() => {
-                  requestOtpMutation.reset();
-                  verifyOtpMutation.reset();
-                  setAuthStep("requestOtp");
-                  setOtp("");
-                  setError(null);
-                  setMessage(null);
-                }}
-              >
-                Use a different email
-              </Button>
-            </>
-          )}
+            ) : (
+              <>
+                <form className="space-y-4" onSubmit={verifyOtp}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="otp">One-time code</Label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isVerifySubmitting}
+                  >
+                    {isVerifySubmitting ? "Verifying..." : "Verify code"}
+                  </Button>
+                </form>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-4 w-full"
+                  disabled={isVerifySubmitting}
+                  onClick={() => {
+                    requestOtpMutation.reset();
+                    verifyOtpMutation.reset();
+                    setAuthStep("requestOtp");
+                    setOtp("");
+                    setError(null);
+                    setMessage(null);
+                  }}
+                >
+                  Use a different email
+                </Button>
+              </>
+            )}
+          </div>
 
           {message && (
-            <p className="mt-4 text-sm text-emerald-600">{message}</p>
+            <p className="mt-4 text-sm text-romance-success">{message}</p>
           )}
           {cameraInitError && (
             <p className="mt-4 text-sm text-destructive">

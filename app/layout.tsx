@@ -1,10 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Roboto } from "next/font/google";
+import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/provider";
 import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
-const roboto = Roboto({ subsets: ["latin"], variable: "--font-sans" });
+const sourceSans = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={roboto.variable}>
+    <html lang="en" className={`${sourceSans.variable} ${playfair.variable}`}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

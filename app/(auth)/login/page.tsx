@@ -11,7 +11,7 @@ export default async function LoginPage() {
   if (session?.user) redirect("/")
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-12">
+    <main className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-16">
       <LoginCard />
     </main>
   )

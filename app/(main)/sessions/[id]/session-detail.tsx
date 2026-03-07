@@ -34,6 +34,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   expired: "destructive",
 };
 
+const statusLabel: Record<string, string> = {
+  draft: "Getting ready",
+  active: "Live",
+  expired: "Ended",
+};
+
 function getFilterName(id: string): string {
   return FILTER_PRESETS.find((p) => p.id === id)?.name ?? id;
 }
@@ -81,14 +87,15 @@ function ShareSection({ sessionId }: { sessionId: string }) {
   const [showQr, setShowQr] = useState(true);
 
   return (
-    <Card>
+    <Card className="motion-safe-fade-up">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <QrCode className="size-4" />
           Share with guests
         </CardTitle>
         <CardDescription>
-          Guests scan this QR code or open the link to join your session.
+          Guests can scan this QR code or open the link to join and capture
+          moments.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -137,7 +144,7 @@ function ConfigSummary({
   hasPassword: boolean;
 }) {
   return (
-    <Card>
+    <Card className="motion-safe-fade-up" style={{ animationDelay: "60ms" }}>
       <CardHeader>
         <CardTitle className="text-base">Configuration</CardTitle>
       </CardHeader>
@@ -145,7 +152,7 @@ function ConfigSummary({
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Film className="size-3.5" />
-            Shots per guest
+            Moments per guest
           </div>
           <div className="font-medium">{rollPreset}</div>
 
@@ -154,7 +161,7 @@ function ConfigSummary({
             Filter mode
           </div>
           <div className="font-medium">
-            {filterMode === "fixed" ? "Fixed filter" : "Guest picks"}
+            {filterMode === "fixed" ? "One filter for all" : "Guests choose"}
           </div>
 
           {filterMode === "fixed" && fixedFilter && (
@@ -190,7 +197,7 @@ function ConfigSummary({
             Password
           </div>
           <div className="font-medium">
-            {hasPassword ? "Enabled" : "Open access"}
+            {hasPassword ? "Protected" : "Open access"}
           </div>
         </div>
       </CardContent>
@@ -198,12 +205,21 @@ function ConfigSummary({
   );
 }
 
-function PhotoCard({ photo }: { photo: PhotoWithUrl }) {
+function PhotoCard({
+  photo,
+  index,
+}: {
+  photo: PhotoWithUrl;
+  index: number;
+}) {
   const url = photo.thumbnailUrl ?? photo.signedUrl;
   if (!url) return null;
 
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-lg border bg-muted">
+    <div
+      className="motion-safe-fade-up group relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
+      style={{ animationDelay: `${index * 45}ms` }}
+    >
       <img
         src={url}
         alt={`Photo by guest`}
@@ -240,7 +256,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
   const { data: photos, isLoading, error } = useSessionPhotos(sessionId);
 
   return (
-    <Card>
+    <Card className="motion-safe-fade-up">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -256,13 +272,8 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
       </CardHeader>
       <CardContent>
         {isLoading && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="aspect-square animate-pulse rounded-lg bg-muted"
-              />
-            ))}
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
           </div>
         )}
 
@@ -272,19 +283,20 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
 
         {photos && photos.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
+            <div className="motion-safe-float flex size-12 items-center justify-center rounded-xl bg-muted">
               <ImageIcon className="size-6 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">
-              No photos yet. Photos will appear here once guests start snapping.
+              No moments yet. Photos will appear here once guests start
+              capturing.
             </p>
           </div>
         )}
 
         {photos && photos.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {photos.map((photo) => (
-              <PhotoCard key={photo.id} photo={photo} />
+            {photos.map((photo, index) => (
+              <PhotoCard key={photo.id} photo={photo} index={index} />
             ))}
           </div>
         )}
@@ -302,9 +314,9 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
         <div className="flex flex-col gap-4">
-          <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-40 animate-pulse rounded-lg bg-muted" />
-          <div className="h-64 animate-pulse rounded-lg bg-muted" />
+          <div className="h-8 w-48 rounded shimmer-soft" />
+          <div className="h-40 rounded-lg shimmer-soft" />
+          <div className="h-64 rounded-lg shimmer-soft" />
         </div>
       </main>
     );
@@ -315,12 +327,12 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <p className="text-sm text-muted-foreground">
-            {error ? "Failed to load session." : "Session not found."}
+            {error ? "Failed to load memory." : "Memory not found."}
           </p>
           <Button asChild variant="outline">
             <Link href="/">
               <ArrowLeft className="size-3.5" />
-              Back to dashboard
+              Back to memories
             </Link>
           </Button>
         </div>
@@ -330,13 +342,13 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
-      <div className="mb-6 flex flex-col gap-4">
+      <div className="motion-safe-fade-up mb-6 flex flex-col gap-4">
         <Link
           href="/"
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
-          Back to sessions
+          Back to memories
         </Link>
 
         <div className="flex items-start justify-between gap-3">
@@ -352,15 +364,15 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
             variant={statusVariant[session.status] ?? "secondary"}
             className="shrink-0"
           >
-            {session.status}
+            {statusLabel[session.status] ?? session.status}
           </Badge>
         </div>
 
         {session.status === "draft" && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+          <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
             <p>
-              This session is in <strong>draft</strong> mode. Guests cannot join
-              until the session is activated.
+              This memory is <strong>getting ready</strong>. Guests can join
+              once you activate it.
             </p>
             {isDev && (
               <Button
