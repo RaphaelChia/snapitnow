@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 const envSchema = z.object({
   // Auth (NextAuth)
@@ -35,26 +35,27 @@ const envSchema = z.object({
     .transform((v) => v === "true"),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASS: z.string().min(1).optional(),
-  SMTP_FROM: z.string().email().optional(),
-})
+  SMTP_FROM: z.string().optional(),
+});
 
-export type Env = z.infer<typeof envSchema>
+export type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
-  const result = envSchema.safeParse(process.env)
+  const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
     const formatted = result.error.issues
       .map((i) => `  ✗ ${i.path.join(".")}: ${i.message}`)
-      .join("\n")
+      .join("\n");
 
-    throw new Error(`Missing or invalid environment variables:\n${formatted}`)
+    throw new Error(`Missing or invalid environment variables:\n${formatted}`);
   }
 
   return {
     ...result.data,
-    GUEST_TOKEN_SECRET: result.data.GUEST_TOKEN_SECRET ?? result.data.AUTH_SECRET,
-  }
+    GUEST_TOKEN_SECRET:
+      result.data.GUEST_TOKEN_SECRET ?? result.data.AUTH_SECRET,
+  };
 }
 
-export const env = validateEnv()
+export const env = validateEnv();

@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn } from "next-auth/react"
-import { Camera } from "lucide-react"
+import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -38,27 +38,27 @@ export function LoginCard() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center text-center">
-        <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-primary">
-          <Camera className="size-6 text-primary-foreground" />
+        <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary shadow-romance">
+          <Heart className="size-7 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
         </div>
-        <CardTitle className="text-lg">SnapItNow</CardTitle>
+        <CardTitle className="font-display text-xl">SnapItNow</CardTitle>
         <CardDescription>
-          Sign in to create and manage your photo sessions.
+          Sign in to create beautiful wedding memories with your guests.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-5">
         <Button
           variant="outline"
           size="lg"
-          className="h-12 w-full gap-3 text-sm"
+          className="h-12 w-full gap-3"
           onClick={() => signIn("google", { callbackUrl: "/" })}
         >
           <GoogleIcon className="size-5" />
           Continue with Google
         </Button>
 
-        <p className="text-center text-[0.6875rem] leading-relaxed text-muted-foreground">
+        <p className="text-center text-sm leading-relaxed text-muted-foreground">
           We only use Google login for authentication. No personal data is
           collected, stored, or shared beyond your name and email for account
           identification.
