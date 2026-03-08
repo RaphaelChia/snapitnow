@@ -18,7 +18,7 @@ export function FilterStrip({
   const presets = FILTER_PRESETS.filter((p) => allowedFilters.includes(p.id))
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 py-3 no-scrollbar">
+    <div className="flex gap-2 overflow-x-auto px-4 pt-3 no-scrollbar">
       {presets.map((preset) => {
         const isActive = preset.id === activeFilterId
         return (
@@ -26,10 +26,10 @@ export function FilterStrip({
             key={preset.id}
             onClick={() => onSelect(preset.id)}
             className={cn(
-              "flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-2.5 transition-all duration-200",
+              "flex min-h-11 shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-transparent px-3.5 py-2.5 transition-all duration-200",
               isActive
-                ? "bg-white/20 ring-2 ring-primary/50"
-                : "bg-white/5 hover:bg-white/12",
+                ? "border-white/30 bg-white/18 ring-1 ring-primary/45"
+                : "bg-white/8 hover:bg-white/14",
             )}
           >
             <div

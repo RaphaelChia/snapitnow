@@ -91,7 +91,7 @@ export const CameraViewfinder = forwardRef<
   const cssFilter = FILTER_CSS[activeFilterId]
 
   return (
-    <div className="relative flex-1 overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-black">
       <video
         ref={videoRef}
         autoPlay

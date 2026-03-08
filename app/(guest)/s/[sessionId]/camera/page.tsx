@@ -10,7 +10,6 @@ import {
 import { FilterStrip } from "./filter-strip";
 import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
-import { Badge } from "@/components/ui/badge";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 
 export default function GuestCameraPage() {
@@ -177,7 +176,7 @@ export default function GuestCameraPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-56px)] flex-col bg-black">
+    <div className="relative h-[calc(100dvh-56px)] overflow-hidden bg-black">
       <CameraViewfinder
         ref={cameraRef}
         activeFilterId={activeFilterId}
@@ -186,38 +185,47 @@ export default function GuestCameraPage() {
         onStreamError={handleStreamError}
       />
 
-      {showFilterStrip && (
-        <FilterStrip
-          allowedFilters={session.allowed_filters as FilterId[]}
-          activeFilterId={activeFilterId}
-          onSelect={setSelectedFilterId}
-        />
-      )}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),1rem)]">
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
+            {remainingShots <= 0
+              ? "All captured"
+              : `${remainingShots} moment${remainingShots === 1 ? "" : "s"} left`}
+          </div>
+          {!galleryUnlocked && (
+            <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
+              {Math.max(0, unlockThreshold - shotsTaken)} more to unlock gallery
+            </div>
+          )}
+        </div>
+      </div>
 
-      <CaptureButton
-        isBusy={isCapturingOrUploading}
-        shotsRemaining={remainingShots}
-        onCapture={handleCapture}
-      />
+      <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-[max(env(safe-area-inset-bottom),0.9rem)]">
+        <div className="rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
+          {showFilterStrip && (
+            <FilterStrip
+              allowedFilters={session.allowed_filters as FilterId[]}
+              activeFilterId={activeFilterId}
+              onSelect={setSelectedFilterId}
+            />
+          )}
 
-      <div className="flex items-center justify-center gap-3 pb-6">
-        <Link
-          href={`/s/${sessionId}/gallery`}
-          className="rounded-xl border border-white/25 hover:border-primary/40 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:bg-white/10"
-        >
-          View gallery
-        </Link>
-        <Badge
-          variant={galleryUnlocked ? "default" : "secondary"}
-          className="text-xs border-white/20 bg-white/10 text-white/95 backdrop-blur-sm"
-        >
-          {galleryUnlocked
-            ? "Full gallery unlocked"
-            : `${Math.max(
-                0,
-                unlockThreshold - shotsTaken
-              )} more moments to unlock full album`}
-        </Badge>
+          <CaptureButton
+            isBusy={isCapturingOrUploading}
+            shotsRemaining={remainingShots}
+            onCapture={handleCapture}
+            showRemainingLabel={false}
+          />
+
+          <div className="flex items-center justify-center pb-4">
+            <Link
+              href={`/s/${sessionId}/gallery`}
+              className="rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:border-primary/45 hover:bg-white/10"
+            >
+              View gallery
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
