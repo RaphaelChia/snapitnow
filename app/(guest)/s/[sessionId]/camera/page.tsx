@@ -11,17 +11,16 @@ import { FilterStrip } from "./filter-strip";
 import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { Badge } from "@/components/ui/badge";
-import {
-  GuestApiError,
-  useGuestCameraInit,
-} from "@/hooks/use-guest-auth";
+import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 
 export default function GuestCameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const cameraRef = useRef<CameraViewfinderHandle>(null);
 
-  const [selectedFilterId, setSelectedFilterId] = useState<FilterId | null>(null);
+  const [selectedFilterId, setSelectedFilterId] = useState<FilterId | null>(
+    null
+  );
   const [capturedCount, setCapturedCount] = useState(0);
   const [isCapturingOrUploading, setIsCapturingOrUploading] = useState(false);
   const [frozenPreviewUrl, setFrozenPreviewUrl] = useState<string | null>(null);
@@ -30,7 +29,8 @@ export default function GuestCameraPage() {
   const session = cameraInitQuery.data?.session ?? null;
   const guestSession = cameraInitQuery.data?.guestSession ?? null;
   const isUnauthenticated =
-    cameraInitQuery.error instanceof GuestApiError && cameraInitQuery.error.status === 401;
+    cameraInitQuery.error instanceof GuestApiError &&
+    cameraInitQuery.error.status === 401;
   const queryErrorMessage =
     cameraInitQuery.isError && !isUnauthenticated
       ? cameraInitQuery.error instanceof Error
@@ -42,8 +42,8 @@ export default function GuestCameraPage() {
     session?.filter_mode === "fixed" && session.fixed_filter
       ? (session.fixed_filter as FilterId)
       : session?.filter_mode === "preset" && session.allowed_filters?.length
-        ? (session.allowed_filters[0] as FilterId)
-        : "none";
+      ? (session.allowed_filters[0] as FilterId)
+      : "none";
   const activeFilterId = selectedFilterId ?? defaultFilterId;
 
   useEffect(() => {
@@ -87,7 +87,10 @@ export default function GuestCameraPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         const message =
-          body && typeof body === "object" && "error" in body && typeof body.error === "string"
+          body &&
+          typeof body === "object" &&
+          "error" in body &&
+          typeof body.error === "string"
             ? body.error
             : "Upload failed";
         throw new Error(message);
@@ -145,10 +148,33 @@ export default function GuestCameraPage() {
     session.filter_mode === "preset" &&
     session.allowed_filters &&
     session.allowed_filters.length > 0;
-  const remainingShots = Math.max(0, guestSession.shots_remaining - capturedCount);
+  const remainingShots = Math.max(
+    0,
+    guestSession.shots_remaining - capturedCount
+  );
+  const rollExhausted = remainingShots <= 0;
   const shotsTaken = Math.max(0, session.roll_preset - remainingShots);
   const unlockThreshold = Math.ceil(session.roll_preset / 2);
   const galleryUnlocked = shotsTaken >= unlockThreshold;
+
+  if (rollExhausted) {
+    return (
+      <div className="flex h-[calc(100dvh-56px)] items-center justify-center bg-black">
+        <div className="flex flex-col items-center justify-center gap-2 pb-6">
+          <Link
+            href={`/s/${sessionId}/gallery`}
+            className="rounded-xl border border-white/25 hover:border-primary/40 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:bg-white/10"
+          >
+            View gallery
+          </Link>
+          <p className="text-xs text-white/70">
+            You&apos;ve used up all {session.roll_preset}/{session.roll_preset}{" "}
+            of your roll.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100dvh-56px)] flex-col bg-black">
@@ -187,7 +213,10 @@ export default function GuestCameraPage() {
         >
           {galleryUnlocked
             ? "Full gallery unlocked"
-            : `${Math.max(0, unlockThreshold - shotsTaken)} more moments to unlock full album`}
+            : `${Math.max(
+                0,
+                unlockThreshold - shotsTaken
+              )} more moments to unlock full album`}
         </Badge>
       </div>
     </div>
