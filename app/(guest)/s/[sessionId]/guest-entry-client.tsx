@@ -122,7 +122,7 @@ export function GuestEntryClient({
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
-              This wedding memory isn't open for guests yet.
+              This wedding memory isn&apos;t open for guests yet.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -137,7 +137,7 @@ export function GuestEntryClient({
           <CardHeader>
             <CardTitle>Join {title}</CardTitle>
             <CardDescription>
-              Checking if you've joined before...
+              Checking if you&apos;ve joined before...
             </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
@@ -161,7 +161,7 @@ export function GuestEntryClient({
           <CardDescription>
             Everyone is given a limited number of shots to capture everything in
             the moment.
-            {isRequestStep ? "" : `Enter the code we sent to ${email}.`}
+            {isRequestStep ? "" : ` Enter the code we sent to ${email}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -212,7 +212,9 @@ export function GuestEntryClient({
                       pattern="[0-9]{6}"
                       maxLength={6}
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, ""))
+                      }
                       required
                     />
                   </div>
