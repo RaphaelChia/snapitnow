@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import Image from "next/image";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -218,7 +219,9 @@ function PhotoCard({ photo, index }: { photo: PhotoWithUrl; index: number }) {
       className="motion-safe-fade-up group relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
       style={{ animationDelay: `${index * 45}ms` }}
     >
-      <img
+      <Image
+        width={100}
+        height={100}
         src={url}
         alt={`Photo by guest`}
         className="h-full w-full object-cover transition-transform group-hover:scale-105"
