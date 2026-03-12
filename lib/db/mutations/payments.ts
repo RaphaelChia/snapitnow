@@ -10,6 +10,11 @@ const checkoutMetadataSchema = z.object({
 })
 
 export const ACTIVATION_PAYMENT_TYPE = "one_time_session"
+const STRIPE_WEBHOOK_STATUS_PROCESSING = "processing"
+type RawEventSnapshot = Exclude<
+  Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"],
+  undefined
+>
 
 type ProcessCheckoutSessionCompletedInput = {
   stripeCheckoutSessionId: string
@@ -17,17 +22,18 @@ type ProcessCheckoutSessionCompletedInput = {
   amount: number
   currency: string
   metadata: Record<string, string> | null
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type ProcessCheckoutSessionExpiredInput = {
   stripeCheckoutSessionId: string
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type ProcessPaymentFailedInput = {
   stripePaymentIntentId: string
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  metadata: Record<string, string> | null
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type ProcessRefundInput = {
@@ -35,7 +41,7 @@ type ProcessRefundInput = {
   stripePaymentIntentId: string | null
   refundedAmount: number
   isFullyRefunded: boolean
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type ProcessDisputeCreatedInput = {
@@ -44,13 +50,13 @@ type ProcessDisputeCreatedInput = {
   stripePaymentIntentId: string | null
   reason: string | null
   amount: number
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type ProcessDisputeClosedInput = {
   stripeDisputeId: string
   isWon: boolean
-  rawEventSnapshot: Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"]
+  rawEventSnapshot: RawEventSnapshot
 }
 
 type StripeEventStatus = Database["public"]["Tables"]["stripe_webhook_events"]["Insert"]["status"]
@@ -82,25 +88,60 @@ type PendingPaymentSummary = {
   stripe_checkout_session_id: string | null
 }
 
+export type PendingPaymentForReconcile = {
+  id: string
+  stripe_checkout_session_id: string
+  created_at: string
+}
+
+type ClaimStripeWebhookEventResult =
+  | "claimed"
+  | "duplicate_processed"
+  | "already_processing"
+
 export async function claimStripeWebhookEvent(
   stripeEventId: string,
   eventType: string,
-): Promise<boolean> {
+): Promise<ClaimStripeWebhookEventResult> {
   const db = createServerClient()
   const webhookEventInsert: Database["public"]["Tables"]["stripe_webhook_events"]["Insert"] = {
     stripe_event_id: stripeEventId,
     event_type: eventType,
-    status: "ignored",
+    status: STRIPE_WEBHOOK_STATUS_PROCESSING,
   }
 
   const { error } = await db.from("stripe_webhook_events").insert(webhookEventInsert)
-  if (!error) return true
+  if (!error) return "claimed"
 
-  if (error.code === "23505") {
-    return false
-  }
+  if (error.code !== "23505") throw error
 
-  throw error
+  const { data: existing, error: existingError } = await db
+    .from("stripe_webhook_events")
+    .select("status")
+    .eq("stripe_event_id", stripeEventId)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (!existing) return "already_processing"
+  if (existing.status === "processed") return "duplicate_processed"
+  if (existing.status === STRIPE_WEBHOOK_STATUS_PROCESSING) return "already_processing"
+
+  const { data: claimedExisting, error: claimExistingError } = await db
+    .from("stripe_webhook_events")
+    .update({
+      status: STRIPE_WEBHOOK_STATUS_PROCESSING,
+      processed_at: null,
+      error_message: null,
+    })
+    .eq("stripe_event_id", stripeEventId)
+    .in("status", ["failed", "ignored"])
+    .select("stripe_event_id")
+    .maybeSingle()
+
+  if (claimExistingError) throw claimExistingError
+  if (!claimedExisting) return "already_processing"
+
+  return "claimed"
 }
 
 export async function createPendingActivationPayment(
@@ -140,6 +181,32 @@ export async function findPendingPaymentByReason(
 
   if (error) throw error
   return data
+}
+
+export async function listPendingActivationPaymentsForReconcile(
+  olderThanIso: string,
+  limit: number,
+): Promise<PendingPaymentForReconcile[]> {
+  const db = createServerClient()
+  const { data, error } = await db
+    .from("payments")
+    .select("id, stripe_checkout_session_id, created_at")
+    .eq("payment_type", ACTIVATION_PAYMENT_TYPE)
+    .eq("status", "pending")
+    .not("stripe_checkout_session_id", "is", null)
+    .lt("created_at", olderThanIso)
+    .order("created_at", { ascending: true })
+    .limit(limit)
+
+  if (error) throw error
+
+  return data
+    .filter((row): row is PendingPaymentForReconcile => !!row.stripe_checkout_session_id)
+    .map((row) => ({
+      id: row.id,
+      stripe_checkout_session_id: row.stripe_checkout_session_id,
+      created_at: row.created_at,
+    }))
 }
 
 export async function expirePendingPaymentById(paymentId: string): Promise<void> {
@@ -185,111 +252,18 @@ export async function processCheckoutSessionCompleted(
   if (!parsedMetadata.success) {
     throw new Error("Missing or invalid checkout metadata for session activation")
   }
+  const { error } = await db.rpc("finalize_activation_payment", {
+    p_checkout_session_id: input.stripeCheckoutSessionId,
+    p_payment_intent_id: input.stripePaymentIntentId,
+    p_amount: input.amount,
+    p_currency: toLowerCurrency(input.currency),
+    p_payment_type: parsedMetadata.data.paymentType,
+    p_session_id: parsedMetadata.data.sessionId,
+    p_host_id: parsedMetadata.data.hostId,
+    p_raw_event_snapshot: input.rawEventSnapshot,
+  })
 
-  const duplicateSettlementUpdate: Database["public"]["Tables"]["payments"]["Update"] = {
-    status: "failed",
-    stripe_checkout_session_id: input.stripeCheckoutSessionId,
-    stripe_payment_intent_id: input.stripePaymentIntentId,
-    amount: input.amount,
-    currency: toLowerCurrency(input.currency),
-    payment_type: parsedMetadata.data.paymentType,
-    raw_event_snapshot: input.rawEventSnapshot,
-  }
-
-  const paymentUpdate: Database["public"]["Tables"]["payments"]["Update"] = {
-    status: "succeeded",
-    paid_at: new Date().toISOString(),
-    stripe_checkout_session_id: input.stripeCheckoutSessionId,
-    stripe_payment_intent_id: input.stripePaymentIntentId,
-    amount: input.amount,
-    currency: toLowerCurrency(input.currency),
-    payment_type: parsedMetadata.data.paymentType,
-    raw_event_snapshot: input.rawEventSnapshot,
-  }
-
-  const { data: existingPayment, error: existingPaymentError } = await db
-    .from("payments")
-    .select("id, host_id, session_id, payment_type, status")
-    .eq("stripe_checkout_session_id", input.stripeCheckoutSessionId)
-    .maybeSingle()
-
-  if (existingPaymentError) throw existingPaymentError
-  if (!existingPayment) {
-    throw new Error(
-      `No pending payment found for checkout session ${input.stripeCheckoutSessionId}`,
-    )
-  }
-
-  if (existingPayment.host_id !== parsedMetadata.data.hostId) {
-    throw new Error("Checkout metadata host does not match payment host")
-  }
-  if (existingPayment.session_id !== parsedMetadata.data.sessionId) {
-    throw new Error("Checkout metadata session does not match payment session")
-  }
-  if (existingPayment.payment_type !== parsedMetadata.data.paymentType) {
-    throw new Error("Checkout metadata payment_type does not match payment record")
-  }
-  if (existingPayment.status !== "pending") {
-    return
-  }
-
-  const { data: succeededPayment, error: succeededPaymentError } = await db
-    .from("payments")
-    .select("id")
-    .eq("session_id", existingPayment.session_id)
-    .eq("payment_type", existingPayment.payment_type)
-    .eq("status", "succeeded")
-    .neq("id", existingPayment.id)
-    .maybeSingle()
-
-  if (succeededPaymentError) throw succeededPaymentError
-  if (succeededPayment) {
-    // Settlement-time race guard: even if two checkout links are paid, only one
-    // business success is authoritative for (session_id, payment_type).
-    const { error: duplicateUpdateError } = await db
-      .from("payments")
-      .update(duplicateSettlementUpdate)
-      .eq("id", existingPayment.id)
-      .eq("status", "pending")
-
-    if (duplicateUpdateError) throw duplicateUpdateError
-    return
-  }
-
-  const { error: paymentUpdateError } = await db
-    .from("payments")
-    .update(paymentUpdate)
-    .eq("id", existingPayment.id)
-    .eq("status", "pending")
-
-  if (paymentUpdateError?.code === "23505") {
-    // Another concurrent webhook beat this update through the unique succeeded index.
-    const { error: duplicateUpdateError } = await db
-      .from("payments")
-      .update(duplicateSettlementUpdate)
-      .eq("id", existingPayment.id)
-      .eq("status", "pending")
-
-    if (duplicateUpdateError) throw duplicateUpdateError
-    return
-  }
-  if (paymentUpdateError) throw paymentUpdateError
-
-  if (parsedMetadata.data.paymentType !== ACTIVATION_PAYMENT_TYPE) {
-    return
-  }
-
-  const { error: sessionActivationError } = await db
-    .from("sessions")
-    .update({
-      status: "active",
-      activated_at: new Date().toISOString(),
-    })
-    .eq("id", parsedMetadata.data.sessionId)
-    .eq("host_id", parsedMetadata.data.hostId)
-    .eq("status", "draft")
-
-  if (sessionActivationError) throw sessionActivationError
+  if (error) throw error
 }
 
 export async function processCheckoutSessionExpired(
@@ -326,8 +300,22 @@ export async function processPaymentIntentFailed(
     .update(paymentUpdate)
     .eq("stripe_payment_intent_id", input.stripePaymentIntentId)
     .eq("status", "pending")
+    .select("id")
 
   if (error) throw error
+
+  const parsedMetadata = checkoutMetadataSchema.safeParse(input.metadata ?? {})
+  if (!parsedMetadata.success) return
+
+  const { error: fallbackError } = await db
+    .from("payments")
+    .update(paymentUpdate)
+    .eq("session_id", parsedMetadata.data.sessionId)
+    .eq("host_id", parsedMetadata.data.hostId)
+    .eq("payment_type", parsedMetadata.data.paymentType)
+    .eq("status", "pending")
+
+  if (fallbackError) throw fallbackError
 }
 
 export async function processChargeRefunded(input: ProcessRefundInput): Promise<void> {

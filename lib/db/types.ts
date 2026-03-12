@@ -437,7 +437,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      finalize_activation_payment: {
+        Args: {
+          p_checkout_session_id: string;
+          p_payment_intent_id: string | null;
+          p_amount: number;
+          p_currency: string;
+          p_payment_type: string;
+          p_session_id: string;
+          p_host_id: string;
+          p_raw_event_snapshot: Json;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;

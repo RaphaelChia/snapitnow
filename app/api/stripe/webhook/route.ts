@@ -29,24 +29,34 @@ function buildRawSnapshot(event: { id: string; type: string; created: number }) 
   return snapshot
 }
 
+function normalizeWebhookError(error: unknown): string {
+  if (error instanceof Error) return error.message.slice(0, 500)
+  if (typeof error === "string") return error.slice(0, 500)
+  return "Unknown webhook processing error"
+}
+
 export async function POST(req: NextRequest) {
   const stripe = getStripeClient()
   const webhookSecret = getStripeWebhookSecret()
 
   let eventId: string | null = null
+  let eventType: string | null = null
+  let processingStage = "signature_verification"
 
   try {
     const signature = getStripeSignature(req)
     const payload = await req.text()
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret)
     eventId = event.id
+    eventType = event.type
 
-    const claimed = await claimStripeWebhookEvent(event.id, event.type)
-    if (!claimed) {
-      return NextResponse.json({ ok: true, duplicate: true })
+    const claimResult = await claimStripeWebhookEvent(event.id, event.type)
+    if (claimResult !== "claimed") {
+      return NextResponse.json({ ok: true, duplicate: true, state: claimResult })
     }
 
     const rawEventSnapshot = buildRawSnapshot(event)
+    processingStage = "event_dispatch"
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object
@@ -58,6 +68,7 @@ export async function POST(req: NextRequest) {
         throw new Error("Incomplete checkout session payload")
       }
 
+      processingStage = "checkout.session.completed"
       await processCheckoutSessionCompleted({
         stripeCheckoutSessionId: session.id,
         stripePaymentIntentId:
@@ -73,6 +84,7 @@ export async function POST(req: NextRequest) {
         throw new Error("Unexpected payload for checkout.session.expired")
       }
 
+      processingStage = "checkout.session.expired"
       await processCheckoutSessionExpired({
         stripeCheckoutSessionId: session.id,
         rawEventSnapshot,
@@ -83,8 +95,10 @@ export async function POST(req: NextRequest) {
         throw new Error("Unexpected payload for payment_intent.payment_failed")
       }
 
+      processingStage = "payment_intent.payment_failed"
       await processPaymentIntentFailed({
         stripePaymentIntentId: paymentIntent.id,
+        metadata: paymentIntent.metadata,
         rawEventSnapshot,
       })
     } else if (event.type === "charge.refunded") {
@@ -97,6 +111,7 @@ export async function POST(req: NextRequest) {
         throw new Error("Unexpected payload for charge.refunded")
       }
 
+      processingStage = "charge.refunded"
       await processChargeRefunded({
         stripeChargeId: charge.id,
         stripePaymentIntentId:
@@ -116,6 +131,7 @@ export async function POST(req: NextRequest) {
         throw new Error("Unexpected payload for charge.dispute.created")
       }
 
+      processingStage = "charge.dispute.created"
       await processDisputeCreated({
         stripeDisputeId: dispute.id,
         stripeChargeId: dispute.charge,
@@ -131,6 +147,7 @@ export async function POST(req: NextRequest) {
         throw new Error("Unexpected payload for charge.dispute.closed")
       }
 
+      processingStage = "charge.dispute.closed"
       await processDisputeClosed({
         stripeDisputeId: dispute.id,
         isWon: dispute.status === "won",
@@ -138,13 +155,24 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    processingStage = "finalize_processed"
     await finalizeStripeWebhookEvent(event.id, "processed")
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error("Stripe webhook processing failed:", error)
+    const normalizedError = normalizeWebhookError(error)
+    console.error("Stripe webhook processing failed", {
+      eventId,
+      eventType,
+      processingStage,
+      error: normalizedError,
+    })
     if (eventId) {
       try {
-        await finalizeStripeWebhookEvent(eventId, "failed", "Webhook processing failed")
+        await finalizeStripeWebhookEvent(
+          eventId,
+          "failed",
+          `[${processingStage}] ${normalizedError}`,
+        )
       } catch (finalizeError) {
         console.error("Failed to mark stripe webhook as failed:", finalizeError)
       }

@@ -194,7 +194,6 @@ export async function createActivationCheckout(
   const checkoutSession = await createActivationCheckoutSession({
     session,
     hostId: userId,
-    idempotencyKey: `checkout:${session.id}:${ACTIVATION_PAYMENT_TYPE}`,
   });
 
   try {
@@ -219,6 +218,8 @@ export async function createActivationCheckout(
     if (!canonicalPending?.stripe_checkout_session_id) {
       throw error;
     }
+
+    await expireCheckoutSession(checkoutSession.checkoutSessionId);
 
     const canonicalSnapshot = await getCheckoutSessionSnapshot(
       canonicalPending.stripe_checkout_session_id
