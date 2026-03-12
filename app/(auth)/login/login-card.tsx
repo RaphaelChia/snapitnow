@@ -38,7 +38,7 @@ export function LoginCard() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center text-center">
-        <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary shadow-romance">
+        <div className="mb-3 flex size-14 items-center justify-center rounded-xl bg-primary shadow-romance">
           <Heart className="size-7 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
         </div>
         <CardTitle className="font-display text-xl">SnapItNow</CardTitle>

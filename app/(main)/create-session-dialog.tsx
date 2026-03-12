@@ -39,8 +39,9 @@ function FilterPreviewCard({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onSelect}
       className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 motion-safe-fade-up ${
         selected
@@ -78,7 +79,7 @@ function FilterPreviewCard({
           {description}
         </p>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -164,18 +165,15 @@ export function CreateSessionDialog({
             <Label>Moments per guest</Label>
             <div className="grid grid-cols-4 gap-2">
               {ROLL_PRESETS.map((preset) => (
-                <button
+                <Button
                   key={preset}
                   type="button"
+                  variant={rollPreset === preset ? "default" : "outline"}
                   onClick={() => setRollPreset(preset)}
-                  className={`flex h-11 min-h-[44px] items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
-                    rollPreset === preset
-                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
-                      : "border-border bg-background hover:bg-muted"
-                  }`}
+                  className="rounded-xl"
                 >
                   {preset}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -184,18 +182,15 @@ export function CreateSessionDialog({
             <Label>Filter mode</Label>
             <div className="grid grid-cols-2 gap-2">
               {(["fixed", "preset"] as const).map((mode) => (
-                <button
+                <Button
                   key={mode}
                   type="button"
+                  variant={filterMode === mode ? "default" : "outline"}
                   onClick={() => setFilterMode(mode)}
-                  className={`flex h-11 min-h-[44px] items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
-                    filterMode === mode
-                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
-                      : "border-border bg-background hover:bg-muted"
-                  }`}
+                  className="rounded-xl"
                 >
                   {mode === "fixed" ? "One filter for all" : "Guests choose"}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface CaptureButtonProps {
@@ -25,7 +26,10 @@ export function CaptureButton({
 
   return (
     <div className="flex flex-col items-center gap-3 py-4">
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-lg"
         onClick={handleCapture}
         disabled={disabled}
         className={cn(
@@ -44,7 +48,7 @@ export function CaptureButton({
               : "bg-white shadow-inner",
           )}
         />
-      </button>
+      </Button>
       {showRemainingLabel && (
         <span className="text-sm font-medium text-white/80">
           {isBusy

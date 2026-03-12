@@ -8,8 +8,10 @@ import {
   removeSession,
   activateSessionForDev,
   createActivationCheckout,
+  fetchActivationPricing,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
+import type { ActivationPricing } from "@/lib/payments/activation-pricing"
 
 export const sessionKeys = {
   all: ["sessions"] as const,
@@ -70,10 +72,24 @@ export function useCreateActivationCheckout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (sessionId: string) => createActivationCheckout(sessionId),
-    onSuccess: (_, sessionId) => {
+    mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: number }) =>
+      createActivationCheckout(sessionId, rollPreset),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
-      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })
     },
   })
 }
+
+export const pricingKeys = {
+  tier: (rollPreset: number) => ["pricing", rollPreset] as const,
+}
+
+export function useActivationPricing(rollPreset: number) {
+  return useQuery<ActivationPricing>({
+    queryKey: pricingKeys.tier(rollPreset),
+    queryFn: () => fetchActivationPricing(rollPreset),
+    enabled: [8, 12, 24, 36].includes(rollPreset),
+  })
+}
+

@@ -7,6 +7,7 @@ export interface CreatePhotoInput {
   host_id: string
   guest_user_id: string
   filter_used: string | null
+  caption: string | null
 }
 
 export async function createPhotoRecord(input: CreatePhotoInput): Promise<Photo> {
@@ -20,6 +21,7 @@ export async function createPhotoRecord(input: CreatePhotoInput): Promise<Photo>
     guest_user_id: input.guest_user_id,
     object_key: objectKey,
     filter_used: input.filter_used,
+    caption: input.caption,
     status: "pending_upload",
     capture_committed_at: new Date().toISOString(),
     delete_after: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),

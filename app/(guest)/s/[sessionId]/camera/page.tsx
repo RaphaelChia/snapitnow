@@ -11,6 +11,7 @@ import { FilterStrip } from "./filter-strip";
 import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
+import { Button } from "@/components/ui/button";
 
 export default function GuestCameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -23,6 +24,8 @@ export default function GuestCameraPage() {
   const [capturedCount, setCapturedCount] = useState(0);
   const [isCapturingOrUploading, setIsCapturingOrUploading] = useState(false);
   const [frozenPreviewUrl, setFrozenPreviewUrl] = useState<string | null>(null);
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [caption, setCaption] = useState("");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const cameraInitQuery = useGuestCameraInit(sessionId);
   const session = cameraInitQuery.data?.session ?? null;
@@ -57,26 +60,34 @@ export default function GuestCameraPage() {
   );
 
   const handleCapture = useCallback(async () => {
-    if (isCapturingOrUploading) return;
+    if (isCapturingOrUploading || pendingBlob) return;
 
     setRuntimeError(null);
-    setIsCapturingOrUploading(true);
 
     const capturedBlob = (await cameraRef.current?.captureFrame()) ?? null;
     if (!capturedBlob) {
       setRuntimeError("Failed to capture frame");
-      setIsCapturingOrUploading(false);
       return;
     }
 
     const previewUrl = URL.createObjectURL(capturedBlob);
     setFrozenPreviewUrl(previewUrl);
+    setPendingBlob(capturedBlob);
+    setCaption("");
+  }, [isCapturingOrUploading, pendingBlob]);
+
+  const handleConfirmUpload = useCallback(async () => {
+    if (!pendingBlob || isCapturingOrUploading) return;
+    setIsCapturingOrUploading(true);
 
     try {
       const formData = new FormData();
-      formData.append("file", capturedBlob, "capture.jpg");
+      formData.append("file", pendingBlob, "capture.jpg");
       formData.append("sessionId", sessionId);
       formData.append("filterUsed", activeFilterId);
+      if (caption.trim()) {
+        formData.append("caption", caption.trim());
+      }
 
       const res = await fetch("/api/photos/upload", {
         method: "POST",
@@ -99,11 +110,20 @@ export default function GuestCameraPage() {
     } catch (err) {
       setRuntimeError(err instanceof Error ? err.message : "Upload failed");
     } finally {
-      URL.revokeObjectURL(previewUrl);
+      if (frozenPreviewUrl) URL.revokeObjectURL(frozenPreviewUrl);
       setFrozenPreviewUrl(null);
+      setPendingBlob(null);
+      setCaption("");
       setIsCapturingOrUploading(false);
     }
-  }, [activeFilterId, isCapturingOrUploading, sessionId]);
+  }, [
+    pendingBlob,
+    isCapturingOrUploading,
+    sessionId,
+    activeFilterId,
+    caption,
+    frozenPreviewUrl,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -125,12 +145,14 @@ export default function GuestCameraPage() {
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center">
         <p className="text-sm text-red-300/90">{error}</p>
-        <button
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => window.location.reload()}
-          className="rounded-xl border border-white/25 px-4 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+          className="border-white/25 bg-transparent text-white/90 hover:bg-white/10 hover:text-white"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -160,12 +182,13 @@ export default function GuestCameraPage() {
     return (
       <div className="flex h-[calc(100dvh-56px)] items-center justify-center bg-black">
         <div className="flex flex-col items-center justify-center gap-2 pb-6">
-          <Link
-            href={`/s/${sessionId}/gallery`}
-            className="rounded-xl border border-white/25 hover:border-primary/40 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:bg-white/10"
+          <Button
+            asChild
+            variant="outline"
+            className="border-white/25 bg-transparent text-white/95 hover:border-primary/40 hover:bg-white/10 hover:text-white"
           >
-            View gallery
-          </Link>
+            <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
+          </Button>
           <p className="text-xs text-white/70">
             You&apos;ve used up all {session.roll_preset}/{session.roll_preset}{" "}
             of your roll.
@@ -190,7 +213,9 @@ export default function GuestCameraPage() {
           <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
             {remainingShots <= 0
               ? "All captured"
-              : `${remainingShots} moment${remainingShots === 1 ? "" : "s"} left`}
+              : `${remainingShots} moment${
+                  remainingShots === 1 ? "" : "s"
+                } left`}
           </div>
           {!galleryUnlocked && (
             <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
@@ -201,31 +226,57 @@ export default function GuestCameraPage() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-[max(env(safe-area-inset-bottom),0.9rem)]">
-        <div className="rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
-          {showFilterStrip && (
-            <FilterStrip
-              allowedFilters={session.allowed_filters as FilterId[]}
-              activeFilterId={activeFilterId}
-              onSelect={setSelectedFilterId}
+        {pendingBlob ? (
+          <div className="rounded-[1.75rem] border border-white/15 bg-black/65 px-4 py-4 backdrop-blur-md flex flex-col items-center justify-center">
+            <input
+              type="text"
+              maxLength={16}
+              placeholder="Add a short caption (optional)"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="mb-3 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-center text-sm text-white placeholder:text-white/40 focus:border-primary/50 focus:outline-none"
+              autoFocus
             />
-          )}
-
-          <CaptureButton
-            isBusy={isCapturingOrUploading}
-            shotsRemaining={remainingShots}
-            onCapture={handleCapture}
-            showRemainingLabel={false}
-          />
-
-          <div className="flex items-center justify-center pb-4">
-            <Link
-              href={`/s/${sessionId}/gallery`}
-              className="rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium text-white/95 transition-all duration-200 hover:border-primary/45 hover:bg-white/10"
+            <Button
+              onClick={handleConfirmUpload}
+              disabled={isCapturingOrUploading}
+              className="max-sm:w-full w-fit px-4 rounded-full font-medium text-primary-foreground shadow-romance transition-all hover:opacity-90 disabled:opacity-50"
             >
-              View gallery
-            </Link>
+              {isCapturingOrUploading
+                ? "Saving..."
+                : caption.trim()
+                ? "Submit with caption"
+                : "Submit"}
+            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
+            {showFilterStrip && (
+              <FilterStrip
+                allowedFilters={session.allowed_filters as FilterId[]}
+                activeFilterId={activeFilterId}
+                onSelect={setSelectedFilterId}
+              />
+            )}
+
+            <CaptureButton
+              isBusy={isCapturingOrUploading}
+              shotsRemaining={remainingShots}
+              onCapture={handleCapture}
+              showRemainingLabel={false}
+            />
+
+            <div className="flex items-center justify-center pb-4">
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-full border-white/30 bg-black/30 text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white"
+              >
+                <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

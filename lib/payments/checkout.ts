@@ -2,12 +2,13 @@ import "server-only"
 import { env } from "@/lib/env"
 import { getStripeClient } from "@/lib/payments/stripe"
 import type { Session } from "@/lib/db/types"
-import { getActivationPricing } from "@/lib/payments/activation-pricing"
+import type { ActivationPricing } from "@/lib/payments/activation-pricing"
 import Stripe from "stripe"
 
 type CreateActivationCheckoutSessionInput = {
   session: Session
   hostId: string
+  pricing: ActivationPricing
   idempotencyKey?: string
 }
 
@@ -26,6 +27,14 @@ export type StripeCheckoutSnapshot = {
   url: string | null
 }
 
+export type ActivationCheckoutIntent = {
+  roll_preset: number
+  baseCents: number
+  discountCents: number
+  finalCents: number
+  currency: "sgd"
+}
+
 function getAppBaseUrl(): string {
   return env.NEXT_PUBLIC_APP_URL ?? env.AUTH_URL
 }
@@ -34,9 +43,13 @@ export async function createActivationCheckoutSession(
   input: CreateActivationCheckoutSessionInput,
 ): Promise<ActivationCheckoutSessionResult> {
   const stripe = getStripeClient()
-  const pricing = getActivationPricing(input.session.roll_preset)
+  const pricing = input.pricing
   const appBaseUrl = getAppBaseUrl()
   const sessionDetailPath = `/sessions/${input.session.id}`
+
+  const description = pricing.discountCents > 0 && pricing.discountLabel
+    ? `One-time activation for "${input.session.title}" (${pricing.discountLabel})`
+    : `One-time activation for "${input.session.title}"`
 
   const checkoutParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -48,10 +61,10 @@ export async function createActivationCheckoutSession(
         quantity: 1,
         price_data: {
           currency: pricing.currency,
-          unit_amount: pricing.amountInCents,
+          unit_amount: pricing.finalCents,
           product_data: {
             name: `SnapItNow session activation (${input.session.roll_preset} rolls)`,
-            description: `One-time activation for "${input.session.title}"`,
+            description,
           },
         },
       },
@@ -76,7 +89,20 @@ export async function createActivationCheckoutSession(
   return {
     checkoutSessionId: checkoutSession.id,
     checkoutUrl: checkoutSession.url,
-    amount: pricing.amountInCents,
+    amount: pricing.finalCents,
+    currency: pricing.currency,
+  }
+}
+
+export function buildActivationCheckoutIntent(
+  rollPreset: number,
+  pricing: ActivationPricing,
+): ActivationCheckoutIntent {
+  return {
+    roll_preset: rollPreset,
+    baseCents: pricing.baseCents,
+    discountCents: pricing.discountCents,
+    finalCents: pricing.finalCents,
     currency: pricing.currency,
   }
 }
