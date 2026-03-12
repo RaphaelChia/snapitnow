@@ -1,7 +1,7 @@
 import "server-only"
 import { z } from "zod"
 import { createServerClient } from "../index"
-import type { Database } from "../types"
+import type { Database, Json } from "../types"
 
 const checkoutMetadataSchema = z.object({
   sessionId: z.string().uuid(),
@@ -67,6 +67,7 @@ type CreatePendingActivationPaymentInput = {
   amount: number
   currency: string
   checkoutSessionId: string
+  checkoutIntent: Json
 }
 
 function toLowerCurrency(input: string): string {
@@ -86,6 +87,7 @@ type PendingPaymentSummary = {
   payment_type: string
   status: string
   stripe_checkout_session_id: string | null
+  checkout_intent: Json | null
 }
 
 export type PendingPaymentForReconcile = {
@@ -158,6 +160,7 @@ export async function createPendingActivationPayment(
     currency: toLowerCurrency(input.currency),
     status: "pending",
     payment_type: "one_time_session",
+    checkout_intent: input.checkoutIntent,
   }
 
   const { error } = await db.from("payments").insert(paymentInsert)
@@ -170,7 +173,7 @@ export async function findPendingPaymentByReason(
   const db = createServerClient()
   const { data, error } = await db
     .from("payments")
-    .select("id, session_id, host_id, payment_type, status, stripe_checkout_session_id")
+    .select("id, session_id, host_id, payment_type, status, stripe_checkout_session_id, checkout_intent")
     .eq("session_id", input.sessionId)
     .eq("host_id", input.hostId)
     .eq("payment_type", input.paymentType)

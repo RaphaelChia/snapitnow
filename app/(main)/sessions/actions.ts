@@ -17,6 +17,7 @@ import {
 } from "@/lib/db/mutations/payments";
 import {
   createActivationCheckoutSession,
+  buildActivationCheckoutIntent,
   expireCheckoutSession,
   getCheckoutSessionSnapshot,
 } from "@/lib/payments/checkout";
@@ -132,6 +133,11 @@ export async function removeSession(sessionId: string): Promise<void> {
 
 const activateSessionSchema = z.string().uuid();
 const createActivationCheckoutSchema = z.string().uuid();
+const activationRollPresetSchema = z
+  .number()
+  .refine((v) => [8, 12, 24, 36].includes(v), {
+    message: "Roll preset must be 8, 12, 24, or 36",
+  });
 
 function hasErrorCode(error: unknown, expectedCode: string): boolean {
   if (typeof error !== "object" || error === null) {
@@ -153,12 +159,13 @@ export async function activateSessionForDev(
 }
 
 export async function createActivationCheckout(
-  sessionId: string
+  sessionId: string,
+  rollPreset: number
 ): Promise<{ checkoutUrl: string }> {
   const userId = await getAuthenticatedUserId();
   const parsedId = createActivationCheckoutSchema.parse(sessionId);
-  const session = await getSessionById(parsedId);
-  console.debug("session", session);
+  const parsedPreset = activationRollPresetSchema.parse(rollPreset);
+  let session = await getSessionById(parsedId);
   if (!session || session.host_id !== userId) {
     throw new Error("Session not found");
   }
@@ -166,39 +173,77 @@ export async function createActivationCheckout(
     throw new Error("Only draft sessions can be activated");
   }
 
+  if (session.roll_preset !== parsedPreset) {
+    session = await updateSessionRollPreset(session.id, userId, parsedPreset);
+  }
+
+  const pricing = await getActivationPricing(session.roll_preset);
+  const expectedCheckoutIntent = buildActivationCheckoutIntent(
+    session.roll_preset,
+    pricing
+  );
+
+  const normalizeForComparison = (value: unknown): string => {
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => normalizeForComparison(item)).join(",")}]`;
+    }
+    if (value && typeof value === "object") {
+      const keys = Object.keys(value).sort();
+      const serializedPairs = keys.map((key) => {
+        const objectValue = Reflect.get(value, key);
+        return `${JSON.stringify(key)}:${normalizeForComparison(objectValue)}`;
+      });
+      return `{${serializedPairs.join(",")}}`;
+    }
+    return JSON.stringify(value);
+  };
+
+  const checkoutIntentMatches = (existingIntent: unknown): boolean => {
+    return (
+      normalizeForComparison(existingIntent) ===
+      normalizeForComparison(expectedCheckoutIntent)
+    );
+  };
+
   const pendingPayment = await findPendingPaymentByReason({
     sessionId: session.id,
     hostId: userId,
     paymentType: ACTIVATION_PAYMENT_TYPE,
   });
 
-  if (pendingPayment?.stripe_checkout_session_id) {
-    const snapshot = await getCheckoutSessionSnapshot(
-      pendingPayment.stripe_checkout_session_id
+  if (pendingPayment) {
+    const pendingIntentMatches = checkoutIntentMatches(
+      pendingPayment.checkout_intent
     );
 
-    // Reuse is the primary preventive control: keep exactly one payable link alive.
-    if (snapshot?.status === "open" && snapshot.url) {
-      return { checkoutUrl: snapshot.url };
-    }
-
-    if (snapshot?.status === "complete") {
-      throw new Error(
-        "A payment is already completing for this session. Please refresh in a moment."
+    if (pendingPayment.stripe_checkout_session_id) {
+      const snapshot = await getCheckoutSessionSnapshot(
+        pendingPayment.stripe_checkout_session_id
       );
-    }
 
-    if (snapshot?.status === "open" && !snapshot.url) {
-      await expireCheckoutSession(pendingPayment.stripe_checkout_session_id);
+      if (pendingIntentMatches && snapshot?.status === "open" && snapshot.url) {
+        return { checkoutUrl: snapshot.url };
+      }
+
+      if (pendingIntentMatches && snapshot?.status === "complete") {
+        throw new Error(
+          "A payment is already completing for this session. Please refresh in a moment."
+        );
+      }
+
+      if (snapshot?.status === "open") {
+        await expireCheckoutSession(pendingPayment.stripe_checkout_session_id);
+      }
+      await expirePendingPaymentById(pendingPayment.id);
+    } else {
+      await expirePendingPaymentById(pendingPayment.id);
     }
-    await expirePendingPaymentById(pendingPayment.id);
-  } else if (pendingPayment) {
-    await expirePendingPaymentById(pendingPayment.id);
   }
 
   const checkoutSession = await createActivationCheckoutSession({
     session,
     hostId: userId,
+    pricing,
   });
 
   try {
@@ -208,6 +253,7 @@ export async function createActivationCheckout(
       amount: checkoutSession.amount,
       currency: checkoutSession.currency,
       checkoutSessionId: checkoutSession.checkoutSessionId,
+      checkoutIntent: expectedCheckoutIntent,
     });
   } catch (error) {
     if (!hasErrorCode(error, "23505")) {
@@ -229,7 +275,11 @@ export async function createActivationCheckout(
     const canonicalSnapshot = await getCheckoutSessionSnapshot(
       canonicalPending.stripe_checkout_session_id
     );
-    if (canonicalSnapshot?.status === "open" && canonicalSnapshot.url) {
+    if (
+      checkoutIntentMatches(canonicalPending.checkout_intent) &&
+      canonicalSnapshot?.status === "open" &&
+      canonicalSnapshot.url
+    ) {
       return { checkoutUrl: canonicalSnapshot.url };
     }
     throw error;
@@ -251,10 +301,7 @@ export async function updateRollPreset(
 ): Promise<Session> {
   const userId = await getAuthenticatedUserId();
   const parsedId = z.string().uuid().parse(sessionId);
-  const parsedPreset = z
-    .number()
-    .refine((v) => [8, 12, 24, 36].includes(v))
-    .parse(rollPreset);
+  const parsedPreset = activationRollPresetSchema.parse(rollPreset);
 
   return updateSessionRollPreset(parsedId, userId, parsedPreset);
 }

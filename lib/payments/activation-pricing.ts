@@ -9,7 +9,7 @@ export type ActivationPricing = {
   currency: "sgd"
 }
 
-const FALLBACK_PRICES: Record<number, number> = {
+const BASE_PRICES: Record<number, number> = {
   8: 5900,
   12: 6500,
   24: 7200,
@@ -19,36 +19,28 @@ const FALLBACK_PRICES: Record<number, number> = {
 export async function getActivationPricing(
   rollPreset: number,
 ): Promise<ActivationPricing> {
-  const db = createServerClient()
+  const baseCents = BASE_PRICES[rollPreset]
+  if (!baseCents) {
+    throw new Error(`Unsupported roll preset for pricing: ${rollPreset}`)
+  }
 
+  const db = createServerClient()
   const { data } = await db
-    .from("pricing_tiers")
-    .select("base_amount_cents, discount_cents, discount_label, currency")
+    .from("discounts")
+    .select("discount_percent, label")
     .eq("roll_preset", rollPreset)
     .eq("active", true)
     .single()
 
-  if (data) {
-    const finalCents = Math.max(0, data.base_amount_cents - data.discount_cents)
-    return {
-      baseCents: data.base_amount_cents,
-      discountCents: data.discount_cents,
-      finalCents,
-      discountLabel: data.discount_label,
-      currency: data.currency as "sgd",
-    }
-  }
-
-  const fallback = FALLBACK_PRICES[rollPreset]
-  if (!fallback) {
-    throw new Error(`Unsupported roll preset for pricing: ${rollPreset}`)
-  }
+  const discountPercent = data?.discount_percent ?? 0
+  const discountCents = Math.round(baseCents * (discountPercent / 100))
+  const finalCents = Math.max(0, baseCents - discountCents)
 
   return {
-    baseCents: fallback,
-    discountCents: 0,
-    finalCents: fallback,
-    discountLabel: null,
+    baseCents,
+    discountCents,
+    finalCents,
+    discountLabel: data?.label ?? null,
     currency: "sgd",
   }
 }

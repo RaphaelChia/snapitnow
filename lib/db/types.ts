@@ -111,14 +111,12 @@ export type Database = {
           }
         ];
       };
-      pricing_tiers: {
+      discounts: {
         Row: {
           id: string;
           roll_preset: number;
-          base_amount_cents: number;
-          discount_cents: number;
-          discount_label: string | null;
-          currency: string;
+          discount_percent: number;
+          label: string | null;
           active: boolean;
           created_at: string;
           updated_at: string;
@@ -126,10 +124,8 @@ export type Database = {
         Insert: {
           id?: string;
           roll_preset: number;
-          base_amount_cents: number;
-          discount_cents?: number;
-          discount_label?: string | null;
-          currency?: string;
+          discount_percent?: number;
+          label?: string | null;
           active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -137,10 +133,8 @@ export type Database = {
         Update: {
           id?: string;
           roll_preset?: number;
-          base_amount_cents?: number;
-          discount_cents?: number;
-          discount_label?: string | null;
-          currency?: string;
+          discount_percent?: number;
+          label?: string | null;
           active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -177,6 +171,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number;
+          checkout_intent: Json | null;
           dispute_amount: number | null;
           dispute_closed_at: string | null;
           dispute_reason: string | null;
@@ -202,6 +197,7 @@ export type Database = {
         Insert: {
           amount: number;
           checkout_session_id?: string | null;
+          checkout_intent?: Json | null;
           created_at?: string;
           currency?: string;
           dispute_amount?: number | null;
@@ -226,6 +222,7 @@ export type Database = {
         Update: {
           amount?: number;
           checkout_session_id?: string | null;
+          checkout_intent?: Json | null;
           created_at?: string;
           currency?: string;
           dispute_amount?: number | null;
@@ -627,7 +624,7 @@ export const Constants = {
 
 export type Host = Tables<"hosts">;
 export type Photo = Tables<"photos">;
-export type PricingTier = Tables<"pricing_tiers">;
+export type Discount = Tables<"discounts">;
 export type GuestSession = Tables<"guest_sessions">;
 export type GuestAuthChallenge = Tables<"guest_auth_challenges">;
 export type GuestIdentity = Tables<"guest_identities">;

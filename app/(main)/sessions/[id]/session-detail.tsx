@@ -5,7 +5,6 @@ import {
   useActivateSessionDev,
   useCreateActivationCheckout,
   useActivationPricing,
-  useUpdateSessionRollPreset,
 } from "@/hooks/use-sessions";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
@@ -515,29 +514,22 @@ function ConfirmActivationDialog({
 }) {
   const [selectedPreset, setSelectedPreset] = useState(initialRollPreset);
   const pricingQuery = useActivationPricing(selectedPreset);
-  const updateRollMutation = useUpdateSessionRollPreset();
   const checkoutMutation = useCreateActivationCheckout();
   const pricing = pricingQuery.data;
-  const isBusy = updateRollMutation.isPending || checkoutMutation.isPending;
+  const isBusy = checkoutMutation.isPending;
 
   const handleProceed = useCallback(async () => {
-    if (selectedPreset !== initialRollPreset) {
-      await updateRollMutation.mutateAsync({
-        sessionId,
-        rollPreset: selectedPreset,
-      });
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    checkoutMutation.mutate(sessionId, {
+    checkoutMutation.mutate(
+      { sessionId, rollPreset: selectedPreset },
+      {
       onSuccess: (result) => {
         window.location.href = result.checkoutUrl;
       },
-    });
+      }
+    );
   }, [
     selectedPreset,
-    initialRollPreset,
     sessionId,
-    updateRollMutation,
     checkoutMutation,
   ]);
 

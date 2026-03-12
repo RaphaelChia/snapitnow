@@ -9,7 +9,6 @@ import {
   activateSessionForDev,
   createActivationCheckout,
   fetchActivationPricing,
-  updateRollPreset,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 import type { ActivationPricing } from "@/lib/payments/activation-pricing"
@@ -73,10 +72,11 @@ export function useCreateActivationCheckout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (sessionId: string) => createActivationCheckout(sessionId),
-    onSuccess: (_, sessionId) => {
+    mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: number }) =>
+      createActivationCheckout(sessionId, rollPreset),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
-      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })
     },
   })
 }
@@ -93,15 +93,3 @@ export function useActivationPricing(rollPreset: number) {
   })
 }
 
-export function useUpdateSessionRollPreset() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: number }) =>
-      updateRollPreset(sessionId, rollPreset),
-    onSuccess: (session) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
-      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(session.id) })
-    },
-  })
-}
