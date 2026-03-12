@@ -16,7 +16,7 @@ const envSchema = z.object({
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
   // Cron
   CRON_SECRET: z.string().min(1),
