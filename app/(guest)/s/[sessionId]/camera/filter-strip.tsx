@@ -2,6 +2,7 @@
 
 import { FILTER_PRESETS, type FilterId } from "@/lib/filters/presets"
 import { FILTER_CSS } from "@/lib/filters/css"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface FilterStripProps {
@@ -22,8 +23,12 @@ export function FilterStrip({
       {presets.map((preset) => {
         const isActive = preset.id === activeFilterId
         return (
-          <button
+          <Button
             key={preset.id}
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-pressed={isActive}
             onClick={() => onSelect(preset.id)}
             className={cn(
               "flex min-h-11 shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-transparent px-3.5 py-2.5 transition-all duration-200",
@@ -44,7 +49,7 @@ export function FilterStrip({
             >
               {preset.name}
             </span>
-          </button>
+          </Button>
         )
       })}
     </div>

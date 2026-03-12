@@ -548,18 +548,15 @@ function ConfirmActivationDialog({
             <Label>Moments per guest</Label>
             <div className="grid grid-cols-4 gap-2">
               {ROLL_PRESETS.map((preset) => (
-                <button
+                <Button
                   key={preset}
                   type="button"
+                  variant={selectedPreset === preset ? "default" : "outline"}
                   onClick={() => setSelectedPreset(preset)}
-                  className={`flex h-10 items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
-                    selectedPreset === preset
-                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
-                      : "border-border bg-background hover:bg-muted"
-                  }`}
+                  className="h-10 rounded-xl"
                 >
                   {preset}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
