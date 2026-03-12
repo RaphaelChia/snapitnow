@@ -276,4 +276,120 @@
     animation: none !important;
     transition-duration: 0ms !important;
   }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
+      sans-serif;
+  }
+}
+
+@layer utilities {
+  @keyframes float-soft {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes drift-bg {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes fade-up-soft {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer-soft {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes pulse-romance {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(183 110 121 / 0%);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgb(183 110 121 / 10%);
+    }
+  }
+
+  .text-meta {
+    font-size: 0.875rem;
+  }
+  .shadow-romance {
+    box-shadow: var(--shadow-romance);
+  }
+  .font-display {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
+      sans-serif;
+  }
+  .motion-safe-float {
+    animation: float-soft 5s ease-in-out infinite;
+  }
+  .motion-safe-fade-up {
+    animation: fade-up-soft 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--stagger, 0) * 70ms);
+  }
+  .motion-safe-drift {
+    background-size: 200% 200%;
+    animation: drift-bg 9s ease-in-out infinite;
+  }
+  .shimmer-soft {
+    background-image: linear-gradient(
+      110deg,
+      color-mix(in oklab, var(--muted) 88%, white 12%) 30%,
+      color-mix(in oklab, var(--romance-accent) 88%, white 12%) 50%,
+      color-mix(in oklab, var(--muted) 88%, white 12%) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-soft 1.8s linear infinite;
+  }
+  .pulse-romance {
+    animation: pulse-romance 2.6s ease-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-float,
+  .motion-safe-fade-up,
+  .motion-safe-drift,
+  .shimmer-soft,
+  .pulse-romance {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
 }

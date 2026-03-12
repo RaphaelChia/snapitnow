@@ -75,7 +75,7 @@ Per-guest shot tracking:
 ## MVP Feature Set
 
 - Session creation and config (password optional, filter mode, roll preset).
-- Payment gating (session activates only after successful payment webhook).
+- Payment gating (session activates only after verified server-side Stripe completion path).
 - QR code join flow.
 - Guest auth + session entry.
 - Camera capture and immediate upload flow.
@@ -222,8 +222,23 @@ Client Component
 ### `payments`
 
 - `id`, `session_id`, `host_id`, `provider` (`stripe`)
-- `checkout_session_id`, `amount`, `currency`
-- `status`, `paid_at`
+- `checkout_session_id`, `stripe_checkout_session_id`, `stripe_payment_intent_id`
+- `stripe_charge_id`, `stripe_dispute_id`, `raw_event_snapshot`
+- `amount`, `currency`
+- `status`, `paid_at`, `refunded_at`, `disputed_at`, `dispute_closed_at`
+
+Current status set in code/migrations:
+
+- `pending`, `succeeded`, `failed`, `expired`
+- `refunded`, `partially_refunded`
+- `disputed`, `won_dispute`, `lost_dispute`
+- `duplicate_settlement`
+
+### `stripe_webhook_events`
+
+- `stripe_event_id` (unique), `event_type`
+- `status` (`processing` | `processed` | `ignored` | `failed`)
+- `processed_at`, `error_message`
 
 ## Security and Privacy Baseline
 
@@ -279,7 +294,9 @@ Client Component
    - add baseline manual rate limiting on join/capture/auth routes
 3. **Paid session activation**
    - Stripe Checkout + webhook integration
-   - on successful payment webhook, call the same activation path used by dev-mode toggle (`draft` -> `active`) to keep behavior consistent
+   - on successful payment webhook, finalize payment through DB RPC `finalize_activation_payment(...)`
+   - DB function transitions `payments.status` and activates `sessions` (`draft` -> `active`) atomically for `one_time_session`
+   - duplicate Stripe settlements are marked `duplicate_settlement` instead of silently mutating an already-succeeded flow
 4. **Host gallery + retention**
    - browse/download photos, 30-day expiry automation
 5. **Hardening**
@@ -295,3 +312,38 @@ Client Component
 ## Remaining Decisions
 
 - Define baseline rate-limit policy matrix (limits per route/window for join, capture, auth).
+
+## Stripe Activation (Current Technical Shape)
+
+The implementation now has three reliability layers:
+
+1. **Checkout creation guard** in server action (`createActivationCheckout`) to avoid multiple active links.
+2. **Webhook idempotency ledger** using `stripe_webhook_events` claim/finalize lifecycle.
+3. **Reconcile cron** (`/api/cron/stripe-reconcile`) to process stale pending rows by pulling Stripe session truth.
+
+### Crucial path snippet
+
+```ts
+// app/api/stripe/webhook/route.ts
+const claimResult = await claimStripeWebhookEvent(event.id, event.type);
+if (claimResult !== "claimed") {
+  // Important: duplicate deliveries should return success to avoid infinite retries.
+  return NextResponse.json({ ok: true, duplicate: true, state: claimResult });
+}
+
+await processCheckoutSessionCompleted({
+  stripeCheckoutSessionId: session.id,
+  stripePaymentIntentId:
+    typeof session.payment_intent === "string" ? session.payment_intent : null,
+  amount: session.amount_total,
+  currency: session.currency,
+  metadata: session.metadata,
+  rawEventSnapshot,
+});
+```
+
+Reasoning:
+
+- Webhooks are at-least-once delivery; duplicate event handling is mandatory.
+- Final payment state transitions are done server-side only after signature verification.
+- Session activation is coupled to verified payment completion, not client redirect state.

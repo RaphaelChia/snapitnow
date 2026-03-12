@@ -8,6 +8,17 @@ import {
   deleteSession,
   activateSession,
 } from "@/lib/db/mutations/sessions";
+import {
+  ACTIVATION_PAYMENT_TYPE,
+  createPendingActivationPayment,
+  expirePendingPaymentById,
+  findPendingPaymentByReason,
+} from "@/lib/db/mutations/payments";
+import {
+  createActivationCheckoutSession,
+  expireCheckoutSession,
+  getCheckoutSessionSnapshot,
+} from "@/lib/payments/checkout";
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
@@ -115,6 +126,14 @@ export async function removeSession(sessionId: string): Promise<void> {
 }
 
 const activateSessionSchema = z.string().uuid();
+const createActivationCheckoutSchema = z.string().uuid();
+
+function hasErrorCode(error: unknown, expectedCode: string): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  return Reflect.get(error, "code") === expectedCode;
+}
 
 export async function activateSessionForDev(
   sessionId: string
@@ -126,4 +145,90 @@ export async function activateSessionForDev(
   const userId = await getAuthenticatedUserId();
   const parsedId = activateSessionSchema.parse(sessionId);
   return activateSession(parsedId, userId);
+}
+
+export async function createActivationCheckout(
+  sessionId: string
+): Promise<{ checkoutUrl: string }> {
+  const userId = await getAuthenticatedUserId();
+  const parsedId = createActivationCheckoutSchema.parse(sessionId);
+  const session = await getSessionById(parsedId);
+
+  if (!session || session.host_id !== userId) {
+    throw new Error("Session not found");
+  }
+  if (session.status !== "draft") {
+    throw new Error("Only draft sessions can be activated");
+  }
+
+  const pendingPayment = await findPendingPaymentByReason({
+    sessionId: session.id,
+    hostId: userId,
+    paymentType: ACTIVATION_PAYMENT_TYPE,
+  });
+
+  if (pendingPayment?.stripe_checkout_session_id) {
+    const snapshot = await getCheckoutSessionSnapshot(
+      pendingPayment.stripe_checkout_session_id
+    );
+
+    // Reuse is the primary preventive control: keep exactly one payable link alive.
+    if (snapshot?.status === "open" && snapshot.url) {
+      return { checkoutUrl: snapshot.url };
+    }
+
+    if (snapshot?.status === "complete") {
+      throw new Error(
+        "A payment is already completing for this session. Please refresh in a moment."
+      );
+    }
+
+    if (snapshot?.status === "open" && !snapshot.url) {
+      await expireCheckoutSession(pendingPayment.stripe_checkout_session_id);
+    }
+    await expirePendingPaymentById(pendingPayment.id);
+  } else if (pendingPayment) {
+    await expirePendingPaymentById(pendingPayment.id);
+  }
+
+  const checkoutSession = await createActivationCheckoutSession({
+    session,
+    hostId: userId,
+  });
+
+  try {
+    await createPendingActivationPayment({
+      sessionId: session.id,
+      hostId: userId,
+      amount: checkoutSession.amount,
+      currency: checkoutSession.currency,
+      checkoutSessionId: checkoutSession.checkoutSessionId,
+    });
+  } catch (error) {
+    if (!hasErrorCode(error, "23505")) {
+      throw error;
+    }
+
+    // Concurrent requests can race between read/create. Fall back to canonical pending row.
+    const canonicalPending = await findPendingPaymentByReason({
+      sessionId: session.id,
+      hostId: userId,
+      paymentType: ACTIVATION_PAYMENT_TYPE,
+    });
+    if (!canonicalPending?.stripe_checkout_session_id) {
+      throw error;
+    }
+
+    await expireCheckoutSession(checkoutSession.checkoutSessionId);
+
+    const canonicalSnapshot = await getCheckoutSessionSnapshot(
+      canonicalPending.stripe_checkout_session_id
+    );
+    if (canonicalSnapshot?.status === "open" && canonicalSnapshot.url) {
+      return { checkoutUrl: canonicalSnapshot.url };
+    }
+    throw error;
+  }
+
+  return { checkoutUrl: checkoutSession.checkoutUrl };
 }

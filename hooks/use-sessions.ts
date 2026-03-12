@@ -7,6 +7,7 @@ import {
   createNewSession,
   removeSession,
   activateSessionForDev,
+  createActivationCheckout,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 
@@ -58,6 +59,18 @@ export function useActivateSessionDev() {
 
   return useMutation({
     mutationFn: (sessionId: string) => activateSessionForDev(sessionId),
+    onSuccess: (_, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })
+    },
+  })
+}
+
+export function useCreateActivationCheckout() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sessionId: string) => createActivationCheckout(sessionId),
     onSuccess: (_, sessionId) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
       queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })

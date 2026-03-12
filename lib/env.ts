@@ -4,6 +4,7 @@ const envSchema = z.object({
   // Auth (NextAuth)
   AUTH_SECRET: z.string().min(1),
   AUTH_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: z.string().min(1),
@@ -12,6 +13,10 @@ const envSchema = z.object({
   // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+
+  // Stripe
+  STRIPE_SECRET_KEY: z.string().min(1),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
   // Cron
   CRON_SECRET: z.string().min(1),

@@ -1,6 +1,10 @@
 "use client";
 
-import { useSession, useActivateSessionDev } from "@/hooks/use-sessions";
+import {
+  useSession,
+  useActivateSessionDev,
+  useCreateActivationCheckout,
+} from "@/hooks/use-sessions";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
@@ -25,8 +29,9 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import Image from "next/image";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -205,13 +210,7 @@ function ConfigSummary({
   );
 }
 
-function PhotoCard({
-  photo,
-  index,
-}: {
-  photo: PhotoWithUrl;
-  index: number;
-}) {
+function PhotoCard({ photo, index }: { photo: PhotoWithUrl; index: number }) {
   const url = photo.thumbnailUrl ?? photo.signedUrl;
   if (!url) return null;
 
@@ -220,7 +219,9 @@ function PhotoCard({
       className="motion-safe-fade-up group relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
       style={{ animationDelay: `${index * 45}ms` }}
     >
-      <img
+      <Image
+        width={100}
+        height={100}
         src={url}
         alt={`Photo by guest`}
         className="h-full w-full object-cover transition-transform group-hover:scale-105"
@@ -308,6 +309,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
   const activateDevMutation = useActivateSessionDev();
+  const activationCheckoutMutation = useCreateActivationCheckout();
   const isDev = process.env.NODE_ENV !== "production";
 
   if (isLoading) {
@@ -372,13 +374,34 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
           <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
             <p>
               This memory is <strong>getting ready</strong>. Guests can join
-              once you activate it.
+              after you activate this session through a one-time payment.
             </p>
+            <p className="div flex items-center gap-1.5 opacity-100">
+              <Lock className="size-3.5" /> Secure checkout via Stripe.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3"
+              disabled={activationCheckoutMutation.isPending}
+              onClick={() => {
+                activationCheckoutMutation.mutate(session.id, {
+                  onSuccess: (result) => {
+                    window.location.href = result.checkoutUrl;
+                  },
+                });
+              }}
+            >
+              {activationCheckoutMutation.isPending
+                ? "Redirecting to checkout..."
+                : "Activate"}
+            </Button>
             {isDev && (
               <Button
                 type="button"
                 size="sm"
-                className="mt-3"
+                variant="outline"
+                className="mt-2"
                 disabled={activateDevMutation.isPending}
                 onClick={() => activateDevMutation.mutate(session.id)}
               >
