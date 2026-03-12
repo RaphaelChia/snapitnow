@@ -141,39 +141,75 @@ export type Database = {
       payments: {
         Row: {
           amount: number;
+          dispute_amount: number | null;
+          dispute_closed_at: string | null;
+          dispute_reason: string | null;
+          disputed_at: string | null;
           checkout_session_id: string | null;
           created_at: string;
           currency: string;
           host_id: string;
           id: string;
           paid_at: string | null;
+          payment_type: string;
           provider: string;
+          raw_event_snapshot: Json | null;
+          refunded_amount: number;
+          refunded_at: string | null;
           session_id: string;
           status: string;
+          stripe_charge_id: string | null;
+          stripe_checkout_session_id: string | null;
+          stripe_dispute_id: string | null;
+          stripe_payment_intent_id: string | null;
         };
         Insert: {
           amount: number;
           checkout_session_id?: string | null;
           created_at?: string;
           currency?: string;
+          dispute_amount?: number | null;
+          dispute_closed_at?: string | null;
+          dispute_reason?: string | null;
+          disputed_at?: string | null;
           host_id: string;
           id?: string;
           paid_at?: string | null;
+          payment_type?: string;
           provider?: string;
+          raw_event_snapshot?: Json | null;
+          refunded_amount?: number;
+          refunded_at?: string | null;
           session_id: string;
           status?: string;
+          stripe_charge_id?: string | null;
+          stripe_checkout_session_id?: string | null;
+          stripe_dispute_id?: string | null;
+          stripe_payment_intent_id?: string | null;
         };
         Update: {
           amount?: number;
           checkout_session_id?: string | null;
           created_at?: string;
           currency?: string;
+          dispute_amount?: number | null;
+          dispute_closed_at?: string | null;
+          dispute_reason?: string | null;
+          disputed_at?: string | null;
           host_id?: string;
           id?: string;
           paid_at?: string | null;
+          payment_type?: string;
           provider?: string;
+          raw_event_snapshot?: Json | null;
+          refunded_amount?: number;
+          refunded_at?: string | null;
           session_id?: string;
           status?: string;
+          stripe_charge_id?: string | null;
+          stripe_checkout_session_id?: string | null;
+          stripe_dispute_id?: string | null;
+          stripe_payment_intent_id?: string | null;
         };
         Relationships: [
           {
@@ -191,6 +227,94 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      };
+      archive_entitlements: {
+        Row: {
+          created_at: string;
+          host_id: string;
+          id: string;
+          photos_quota: number;
+          session_id: string | null;
+          source_payment_id: string;
+          status: string;
+          valid_from: string;
+          valid_until: string;
+        };
+        Insert: {
+          created_at?: string;
+          host_id: string;
+          id?: string;
+          photos_quota: number;
+          session_id?: string | null;
+          source_payment_id: string;
+          status?: string;
+          valid_from: string;
+          valid_until: string;
+        };
+        Update: {
+          created_at?: string;
+          host_id?: string;
+          id?: string;
+          photos_quota?: number;
+          session_id?: string | null;
+          source_payment_id?: string;
+          status?: string;
+          valid_from?: string;
+          valid_until?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "archive_entitlements_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "hosts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "archive_entitlements_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "archive_entitlements_source_payment_id_fkey";
+            columns: ["source_payment_id"];
+            isOneToOne: false;
+            referencedRelation: "payments";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      stripe_webhook_events: {
+        Row: {
+          error_message: string | null;
+          event_type: string;
+          id: string;
+          processed_at: string | null;
+          received_at: string;
+          status: string;
+          stripe_event_id: string;
+        };
+        Insert: {
+          error_message?: string | null;
+          event_type: string;
+          id?: string;
+          processed_at?: string | null;
+          received_at?: string;
+          status?: string;
+          stripe_event_id: string;
+        };
+        Update: {
+          error_message?: string | null;
+          event_type?: string;
+          id?: string;
+          processed_at?: string | null;
+          received_at?: string;
+          status?: string;
+          stripe_event_id?: string;
+        };
+        Relationships: [];
       };
       photos: {
         Row: {

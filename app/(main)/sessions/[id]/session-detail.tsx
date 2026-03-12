@@ -1,6 +1,10 @@
 "use client";
 
-import { useSession, useActivateSessionDev } from "@/hooks/use-sessions";
+import {
+  useSession,
+  useActivateSessionDev,
+  useCreateActivationCheckout,
+} from "@/hooks/use-sessions";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
@@ -25,7 +29,7 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
@@ -308,6 +312,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
   const activateDevMutation = useActivateSessionDev();
+  const activationCheckoutMutation = useCreateActivationCheckout();
   const isDev = process.env.NODE_ENV !== "production";
 
   if (isLoading) {
@@ -374,11 +379,29 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
               This memory is <strong>getting ready</strong>. Guests can join
               once you activate it.
             </p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3"
+              disabled={activationCheckoutMutation.isPending}
+              onClick={() => {
+                activationCheckoutMutation.mutate(session.id, {
+                  onSuccess: (result) => {
+                    window.location.href = result.checkoutUrl;
+                  },
+                });
+              }}
+            >
+              {activationCheckoutMutation.isPending
+                ? "Redirecting to checkout..."
+                : "Activate with Stripe"}
+            </Button>
             {isDev && (
               <Button
                 type="button"
                 size="sm"
-                className="mt-3"
+                variant="outline"
+                className="mt-2"
                 disabled={activateDevMutation.isPending}
                 onClick={() => activateDevMutation.mutate(session.id)}
               >

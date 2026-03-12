@@ -8,6 +8,8 @@ import {
   deleteSession,
   activateSession,
 } from "@/lib/db/mutations/sessions";
+import { createPendingActivationPayment } from "@/lib/db/mutations/payments";
+import { createActivationCheckoutSession } from "@/lib/payments/checkout";
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
@@ -115,6 +117,7 @@ export async function removeSession(sessionId: string): Promise<void> {
 }
 
 const activateSessionSchema = z.string().uuid();
+const createActivationCheckoutSchema = z.string().uuid();
 
 export async function activateSessionForDev(
   sessionId: string
@@ -126,4 +129,34 @@ export async function activateSessionForDev(
   const userId = await getAuthenticatedUserId();
   const parsedId = activateSessionSchema.parse(sessionId);
   return activateSession(parsedId, userId);
+}
+
+export async function createActivationCheckout(
+  sessionId: string
+): Promise<{ checkoutUrl: string }> {
+  const userId = await getAuthenticatedUserId();
+  const parsedId = createActivationCheckoutSchema.parse(sessionId);
+  const session = await getSessionById(parsedId);
+
+  if (!session || session.host_id !== userId) {
+    throw new Error("Session not found");
+  }
+  if (session.status !== "draft") {
+    throw new Error("Only draft sessions can be activated");
+  }
+
+  const checkoutSession = await createActivationCheckoutSession({
+    session,
+    hostId: userId,
+  });
+
+  await createPendingActivationPayment({
+    sessionId: session.id,
+    hostId: userId,
+    amount: checkoutSession.amount,
+    currency: checkoutSession.currency,
+    checkoutSessionId: checkoutSession.checkoutSessionId,
+  });
+
+  return { checkoutUrl: checkoutSession.checkoutUrl };
 }
