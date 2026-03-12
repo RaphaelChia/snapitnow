@@ -209,13 +209,7 @@ function ConfigSummary({
   );
 }
 
-function PhotoCard({
-  photo,
-  index,
-}: {
-  photo: PhotoWithUrl;
-  index: number;
-}) {
+function PhotoCard({ photo, index }: { photo: PhotoWithUrl; index: number }) {
   const url = photo.thumbnailUrl ?? photo.signedUrl;
   if (!url) return null;
 
@@ -377,7 +371,10 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
           <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
             <p>
               This memory is <strong>getting ready</strong>. Guests can join
-              once you activate it.
+              after you activate this session through a one-time payment.
+            </p>
+            <p className="div flex items-center gap-1.5 opacity-100">
+              <Lock className="size-3.5" /> Secure checkout via Stripe.
             </p>
             <Button
               type="button"
@@ -394,7 +391,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
             >
               {activationCheckoutMutation.isPending
                 ? "Redirecting to checkout..."
-                : "Activate with Stripe"}
+                : "Activate"}
             </Button>
             {isDev && (
               <Button
