@@ -60,95 +60,96 @@
 
 :root {
   /* Blissful Wedding Editorial palette */
-  --romance-primary: #B76E79;
-  --romance-secondary: #E8CFCF;
-  --romance-accent: #F3E9DC;
-  --romance-highlight: #D4AF37;
-  --romance-surface: #FFFFFF;
-  --romance-text: #3A2E2E;
-  --romance-text-muted: #7A6767;
-  --romance-success: #4F7A62;
-  --romance-warning: #B9853B;
-  --romance-error: #A44A4A;
-  --gradient-blush-champagne: linear-gradient(135deg, #F8E8E8 0%, #F3E9DC 100%);
-  --gradient-sunset-soft: linear-gradient(180deg, #FFF9F7 0%, #FBEFE8 100%);
-  --shadow-romance: 0 4px 20px -4px rgb(58 46 46 / 8%), 0 2px 8px -2px rgb(58 46 46 / 4%);
+  --romance-primary: #b76e79;
+  --romance-secondary: #e8cfcf;
+  --romance-accent: #f3e9dc;
+  --romance-highlight: #d4af37;
+  --romance-surface: #ffffff;
+  --romance-text: #3a2e2e;
+  --romance-text-muted: #7a6767;
+  --romance-success: #4f7a62;
+  --romance-warning: #b9853b;
+  --romance-error: #a44a4a;
+  --gradient-blush-champagne: linear-gradient(135deg, #f8e8e8 0%, #f3e9dc 100%);
+  --gradient-sunset-soft: linear-gradient(180deg, #fff9f7 0%, #fbefe8 100%);
+  --shadow-romance: 0 4px 20px -4px rgb(58 46 46 / 8%),
+    0 2px 8px -2px rgb(58 46 46 / 4%);
 
-  --background: #FFF9F7;
-  --foreground: #3A2E2E;
-  --card: #FFFFFF;
-  --card-foreground: #3A2E2E;
-  --popover: #FFFFFF;
-  --popover-foreground: #3A2E2E;
-  --primary: #B76E79;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E8CFCF;
-  --secondary-foreground: #3A2E2E;
-  --muted: #F8E8E8;
-  --muted-foreground: #7A6767;
-  --accent: #F3E9DC;
-  --accent-foreground: #3A2E2E;
-  --destructive: #A44A4A;
-  --border: #E8D8D8;
-  --input: #E8D8D8;
-  --ring: #B76E79;
-  --chart-1: #B76E79;
-  --chart-2: #E8CFCF;
-  --chart-3: #D4AF37;
-  --chart-4: #4F7A62;
-  --chart-5: #7A6767;
+  --background: #fff9f7;
+  --foreground: #3a2e2e;
+  --card: #ffffff;
+  --card-foreground: #3a2e2e;
+  --popover: #ffffff;
+  --popover-foreground: #3a2e2e;
+  --primary: #b76e79;
+  --primary-foreground: #ffffff;
+  --secondary: #e8cfcf;
+  --secondary-foreground: #3a2e2e;
+  --muted: #f8e8e8;
+  --muted-foreground: #7a6767;
+  --accent: #f3e9dc;
+  --accent-foreground: #3a2e2e;
+  --destructive: #a44a4a;
+  --border: #e8d8d8;
+  --input: #e8d8d8;
+  --ring: #b76e79;
+  --chart-1: #b76e79;
+  --chart-2: #e8cfcf;
+  --chart-3: #d4af37;
+  --chart-4: #4f7a62;
+  --chart-5: #7a6767;
   --radius: 0.875rem;
-  --sidebar: #FFF9F7;
-  --sidebar-foreground: #3A2E2E;
-  --sidebar-primary: #B76E79;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F8E8E8;
-  --sidebar-accent-foreground: #3A2E2E;
-  --sidebar-border: #E8D8D8;
-  --sidebar-ring: #B76E79;
+  --sidebar: #fff9f7;
+  --sidebar-foreground: #3a2e2e;
+  --sidebar-primary: #b76e79;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f8e8e8;
+  --sidebar-accent-foreground: #3a2e2e;
+  --sidebar-border: #e8d8d8;
+  --sidebar-ring: #b76e79;
 }
 
 .dark {
-  --romance-warning: #E5B85C;
-  --romance-primary: #D4919B;
-  --romance-secondary: #5C4545;
-  --romance-accent: #3D3530;
-  --romance-highlight: #E5C76B;
-  --romance-surface: #2A2222;
-  --romance-text: #F5EDEB;
-  --romance-text-muted: #B8A8A8;
+  --romance-warning: #e5b85c;
+  --romance-primary: #d4919b;
+  --romance-secondary: #5c4545;
+  --romance-accent: #3d3530;
+  --romance-highlight: #e5c76b;
+  --romance-surface: #2a2222;
+  --romance-text: #f5edeb;
+  --romance-text-muted: #b8a8a8;
 
-  --background: #1E1818;
-  --foreground: #F5EDEB;
-  --card: #2A2222;
-  --card-foreground: #F5EDEB;
-  --popover: #2A2222;
-  --popover-foreground: #F5EDEB;
-  --primary: #D4919B;
-  --primary-foreground: #1E1818;
-  --secondary: #5C4545;
-  --secondary-foreground: #F5EDEB;
-  --muted: #3D3530;
-  --muted-foreground: #B8A8A8;
-  --accent: #3D3530;
-  --accent-foreground: #F5EDEB;
-  --destructive: #E07A7A;
+  --background: #1e1818;
+  --foreground: #f5edeb;
+  --card: #2a2222;
+  --card-foreground: #f5edeb;
+  --popover: #2a2222;
+  --popover-foreground: #f5edeb;
+  --primary: #d4919b;
+  --primary-foreground: #1e1818;
+  --secondary: #5c4545;
+  --secondary-foreground: #f5edeb;
+  --muted: #3d3530;
+  --muted-foreground: #b8a8a8;
+  --accent: #3d3530;
+  --accent-foreground: #f5edeb;
+  --destructive: #e07a7a;
   --border: rgb(255 249 247 / 12%);
   --input: rgb(255 249 247 / 15%);
-  --ring: #D4919B;
-  --chart-1: #D4919B;
-  --chart-2: #E8CFCF;
-  --chart-3: #E5C76B;
-  --chart-4: #6B9B7E;
-  --chart-5: #B8A8A8;
-  --sidebar: #2A2222;
-  --sidebar-foreground: #F5EDEB;
-  --sidebar-primary: #D4919B;
-  --sidebar-primary-foreground: #1E1818;
-  --sidebar-accent: #3D3530;
-  --sidebar-accent-foreground: #F5EDEB;
+  --ring: #d4919b;
+  --chart-1: #d4919b;
+  --chart-2: #e8cfcf;
+  --chart-3: #e5c76b;
+  --chart-4: #6b9b7e;
+  --chart-5: #b8a8a8;
+  --sidebar: #2a2222;
+  --sidebar-foreground: #f5edeb;
+  --sidebar-primary: #d4919b;
+  --sidebar-primary-foreground: #1e1818;
+  --sidebar-accent: #3d3530;
+  --sidebar-accent-foreground: #f5edeb;
   --sidebar-border: rgb(255 249 247 / 12%);
-  --sidebar-ring: #D4919B;
+  --sidebar-ring: #d4919b;
 }
 
 @layer base {
@@ -169,14 +170,18 @@
     font-weight: 600;
     letter-spacing: -0.01em;
   }
-  h1, h2, h3 {
-    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
+      sans-serif;
   }
 }
 
 @layer utilities {
   @keyframes float-soft {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
@@ -217,7 +222,8 @@
   }
 
   @keyframes pulse-romance {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 0 0 rgb(183 110 121 / 0%);
     }
     50% {
@@ -232,7 +238,8 @@
     box-shadow: var(--shadow-romance);
   }
   .font-display {
-    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
+      sans-serif;
   }
   .motion-safe-float {
     animation: float-soft 5s ease-in-out infinite;
