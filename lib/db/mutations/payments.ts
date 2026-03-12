@@ -6,8 +6,10 @@ import type { Database } from "../types"
 const checkoutMetadataSchema = z.object({
   sessionId: z.string().uuid(),
   hostId: z.string().min(1),
-  paymentType: z.literal("one_time_session"),
+  paymentType: z.string().min(1),
 })
+
+export const ACTIVATION_PAYMENT_TYPE = "one_time_session"
 
 type ProcessCheckoutSessionCompletedInput = {
   stripeCheckoutSessionId: string
@@ -65,6 +67,21 @@ function toLowerCurrency(input: string): string {
   return input.trim().toLowerCase()
 }
 
+type PendingPaymentLookupInput = {
+  sessionId: string
+  hostId: string
+  paymentType: string
+}
+
+type PendingPaymentSummary = {
+  id: string
+  session_id: string
+  host_id: string
+  payment_type: string
+  status: string
+  stripe_checkout_session_id: string | null
+}
+
 export async function claimStripeWebhookEvent(
   stripeEventId: string,
   eventType: string,
@@ -106,6 +123,40 @@ export async function createPendingActivationPayment(
   if (error) throw error
 }
 
+export async function findPendingPaymentByReason(
+  input: PendingPaymentLookupInput,
+): Promise<PendingPaymentSummary | null> {
+  const db = createServerClient()
+  const { data, error } = await db
+    .from("payments")
+    .select("id, session_id, host_id, payment_type, status, stripe_checkout_session_id")
+    .eq("session_id", input.sessionId)
+    .eq("host_id", input.hostId)
+    .eq("payment_type", input.paymentType)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function expirePendingPaymentById(paymentId: string): Promise<void> {
+  const db = createServerClient()
+  const paymentUpdate: Database["public"]["Tables"]["payments"]["Update"] = {
+    status: "expired",
+  }
+
+  const { error } = await db
+    .from("payments")
+    .update(paymentUpdate)
+    .eq("id", paymentId)
+    .eq("status", "pending")
+
+  if (error) throw error
+}
+
 export async function finalizeStripeWebhookEvent(
   stripeEventId: string,
   status: StripeEventStatus,
@@ -135,6 +186,16 @@ export async function processCheckoutSessionCompleted(
     throw new Error("Missing or invalid checkout metadata for session activation")
   }
 
+  const duplicateSettlementUpdate: Database["public"]["Tables"]["payments"]["Update"] = {
+    status: "failed",
+    stripe_checkout_session_id: input.stripeCheckoutSessionId,
+    stripe_payment_intent_id: input.stripePaymentIntentId,
+    amount: input.amount,
+    currency: toLowerCurrency(input.currency),
+    payment_type: parsedMetadata.data.paymentType,
+    raw_event_snapshot: input.rawEventSnapshot,
+  }
+
   const paymentUpdate: Database["public"]["Tables"]["payments"]["Update"] = {
     status: "succeeded",
     paid_at: new Date().toISOString(),
@@ -159,16 +220,39 @@ export async function processCheckoutSessionCompleted(
     )
   }
 
-  if (existingPayment.payment_type !== "one_time_session") {
-    throw new Error(`Unsupported payment_type for phase 2: ${existingPayment.payment_type}`)
-  }
   if (existingPayment.host_id !== parsedMetadata.data.hostId) {
     throw new Error("Checkout metadata host does not match payment host")
   }
   if (existingPayment.session_id !== parsedMetadata.data.sessionId) {
     throw new Error("Checkout metadata session does not match payment session")
   }
+  if (existingPayment.payment_type !== parsedMetadata.data.paymentType) {
+    throw new Error("Checkout metadata payment_type does not match payment record")
+  }
   if (existingPayment.status !== "pending") {
+    return
+  }
+
+  const { data: succeededPayment, error: succeededPaymentError } = await db
+    .from("payments")
+    .select("id")
+    .eq("session_id", existingPayment.session_id)
+    .eq("payment_type", existingPayment.payment_type)
+    .eq("status", "succeeded")
+    .neq("id", existingPayment.id)
+    .maybeSingle()
+
+  if (succeededPaymentError) throw succeededPaymentError
+  if (succeededPayment) {
+    // Settlement-time race guard: even if two checkout links are paid, only one
+    // business success is authoritative for (session_id, payment_type).
+    const { error: duplicateUpdateError } = await db
+      .from("payments")
+      .update(duplicateSettlementUpdate)
+      .eq("id", existingPayment.id)
+      .eq("status", "pending")
+
+    if (duplicateUpdateError) throw duplicateUpdateError
     return
   }
 
@@ -178,7 +262,22 @@ export async function processCheckoutSessionCompleted(
     .eq("id", existingPayment.id)
     .eq("status", "pending")
 
+  if (paymentUpdateError?.code === "23505") {
+    // Another concurrent webhook beat this update through the unique succeeded index.
+    const { error: duplicateUpdateError } = await db
+      .from("payments")
+      .update(duplicateSettlementUpdate)
+      .eq("id", existingPayment.id)
+      .eq("status", "pending")
+
+    if (duplicateUpdateError) throw duplicateUpdateError
+    return
+  }
   if (paymentUpdateError) throw paymentUpdateError
+
+  if (parsedMetadata.data.paymentType !== ACTIVATION_PAYMENT_TYPE) {
+    return
+  }
 
   const { error: sessionActivationError } = await db
     .from("sessions")
