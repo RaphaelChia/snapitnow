@@ -111,6 +111,42 @@ export type Database = {
           }
         ];
       };
+      pricing_tiers: {
+        Row: {
+          id: string;
+          roll_preset: number;
+          base_amount_cents: number;
+          discount_cents: number;
+          discount_label: string | null;
+          currency: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          roll_preset: number;
+          base_amount_cents: number;
+          discount_cents?: number;
+          discount_label?: string | null;
+          currency?: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          roll_preset?: number;
+          base_amount_cents?: number;
+          discount_cents?: number;
+          discount_label?: string | null;
+          currency?: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       hosts: {
         Row: {
           created_at: string;
@@ -318,6 +354,7 @@ export type Database = {
       };
       photos: {
         Row: {
+          caption: string | null;
           capture_committed_at: string;
           delete_after: string;
           filter_used: string | null;
@@ -333,6 +370,7 @@ export type Database = {
           uploaded_at: string | null;
         };
         Insert: {
+          caption?: string | null;
           capture_committed_at?: string;
           delete_after?: string;
           filter_used?: string | null;
@@ -348,6 +386,7 @@ export type Database = {
           uploaded_at?: string | null;
         };
         Update: {
+          caption?: string | null;
           capture_committed_at?: string;
           delete_after?: string;
           filter_used?: string | null;
@@ -588,6 +627,7 @@ export const Constants = {
 
 export type Host = Tables<"hosts">;
 export type Photo = Tables<"photos">;
+export type PricingTier = Tables<"pricing_tiers">;
 export type GuestSession = Tables<"guest_sessions">;
 export type GuestAuthChallenge = Tables<"guest_auth_challenges">;
 export type GuestIdentity = Tables<"guest_identities">;

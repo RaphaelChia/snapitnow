@@ -11,6 +11,7 @@ import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 const uploadSchema = z.object({
   sessionId: z.string().uuid(),
   filterUsed: z.string().nullable(),
+  caption: z.string().max(16).nullable(),
 })
 
 export async function POST(req: NextRequest) {
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
     const parsed = uploadSchema.safeParse({
       sessionId: formData.get("sessionId"),
       filterUsed: formData.get("filterUsed") || null,
+      caption: formData.get("caption") || null,
     })
 
     if (!parsed.success) {
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { sessionId, filterUsed } = parsed.data
+    const { sessionId, filterUsed, caption } = parsed.data
     const guestAuth = getGuestAuthFromRequest(req, sessionId)
     if (!guestAuth) {
       return NextResponse.json({ error: "Guest authentication required" }, { status: 401 })
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest) {
       host_id: session.host_id,
       guest_user_id: guestUserId,
       filter_used: filterUsed,
+      caption,
     })
 
     try {

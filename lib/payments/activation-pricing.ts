@@ -1,23 +1,54 @@
 import "server-only"
+import { createServerClient } from "@/lib/db"
 
 export type ActivationPricing = {
-  amountInCents: number
+  baseCents: number
+  discountCents: number
+  finalCents: number
+  discountLabel: string | null
   currency: "sgd"
 }
 
-export function getActivationPricing(rollPreset: number): ActivationPricing {
-  if (rollPreset === 8) {
-    return { amountInCents: 5900, currency: "sgd" }
-  }
-  if (rollPreset === 12) {
-    return { amountInCents: 6500, currency: "sgd" }
-  }
-  if (rollPreset === 24) {
-    return { amountInCents: 7200, currency: "sgd" }
-  }
-  if (rollPreset === 36) {
-    return { amountInCents: 7900, currency: "sgd" }
+const FALLBACK_PRICES: Record<number, number> = {
+  8: 5900,
+  12: 6500,
+  24: 7200,
+  36: 7900,
+}
+
+export async function getActivationPricing(
+  rollPreset: number,
+): Promise<ActivationPricing> {
+  const db = createServerClient()
+
+  const { data } = await db
+    .from("pricing_tiers")
+    .select("base_amount_cents, discount_cents, discount_label, currency")
+    .eq("roll_preset", rollPreset)
+    .eq("active", true)
+    .single()
+
+  if (data) {
+    const finalCents = Math.max(0, data.base_amount_cents - data.discount_cents)
+    return {
+      baseCents: data.base_amount_cents,
+      discountCents: data.discount_cents,
+      finalCents,
+      discountLabel: data.discount_label,
+      currency: data.currency as "sgd",
+    }
   }
 
-  throw new Error(`Unsupported roll preset for pricing: ${rollPreset}`)
+  const fallback = FALLBACK_PRICES[rollPreset]
+  if (!fallback) {
+    throw new Error(`Unsupported roll preset for pricing: ${rollPreset}`)
+  }
+
+  return {
+    baseCents: fallback,
+    discountCents: 0,
+    finalCents: fallback,
+    discountLabel: null,
+    currency: "sgd",
+  }
 }

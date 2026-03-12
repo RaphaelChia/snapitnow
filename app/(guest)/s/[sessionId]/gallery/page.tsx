@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ImageIcon } from "lucide-react"
+import { ArrowLeft, ImageIcon, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -101,6 +101,13 @@ export default function GuestGalleryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {data.visibility.galleryUnlocked && data.photos.length > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              <Users className="size-3.5 shrink-0" />
+              Photos in this gallery are shared with all guests.
+            </div>
+          )}
+
           {data.photos.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <div className="motion-safe-float flex size-12 items-center justify-center rounded-xl bg-muted">
@@ -130,16 +137,24 @@ export default function GuestGalleryPage() {
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
-                    {photo.isOwnPhoto && (
-                      <div className="absolute bottom-1.5 left-1.5">
+                    <div className="absolute bottom-1.5 left-1.5 flex flex-col gap-0.5">
+                      {photo.isOwnPhoto && (
                         <Badge
                           variant="secondary"
                           className="bg-black/50 text-xs text-white backdrop-blur-sm"
                         >
                           Your moment
                         </Badge>
-                      </div>
-                    )}
+                      )}
+                      {photo.caption && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-black/50 text-[10px] text-white backdrop-blur-sm"
+                        >
+                          {photo.caption}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )
               })}

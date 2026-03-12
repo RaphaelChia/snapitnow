@@ -7,6 +7,7 @@ import {
   createSession,
   deleteSession,
   activateSession,
+  updateSessionRollPreset,
 } from "@/lib/db/mutations/sessions";
 import {
   ACTIVATION_PAYMENT_TYPE,
@@ -19,6 +20,10 @@ import {
   expireCheckoutSession,
   getCheckoutSessionSnapshot,
 } from "@/lib/payments/checkout";
+import {
+  getActivationPricing,
+  type ActivationPricing,
+} from "@/lib/payments/activation-pricing";
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
@@ -153,7 +158,7 @@ export async function createActivationCheckout(
   const userId = await getAuthenticatedUserId();
   const parsedId = createActivationCheckoutSchema.parse(sessionId);
   const session = await getSessionById(parsedId);
-
+  console.debug("session", session);
   if (!session || session.host_id !== userId) {
     throw new Error("Session not found");
   }
@@ -231,4 +236,25 @@ export async function createActivationCheckout(
   }
 
   return { checkoutUrl: checkoutSession.checkoutUrl };
+}
+
+export async function fetchActivationPricing(
+  rollPreset: number
+): Promise<ActivationPricing> {
+  await getAuthenticatedUserId();
+  return getActivationPricing(rollPreset);
+}
+
+export async function updateRollPreset(
+  sessionId: string,
+  rollPreset: number
+): Promise<Session> {
+  const userId = await getAuthenticatedUserId();
+  const parsedId = z.string().uuid().parse(sessionId);
+  const parsedPreset = z
+    .number()
+    .refine((v) => [8, 12, 24, 36].includes(v))
+    .parse(rollPreset);
+
+  return updateSessionRollPreset(parsedId, userId, parsedPreset);
 }

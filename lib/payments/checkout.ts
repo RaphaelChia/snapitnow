@@ -34,9 +34,13 @@ export async function createActivationCheckoutSession(
   input: CreateActivationCheckoutSessionInput,
 ): Promise<ActivationCheckoutSessionResult> {
   const stripe = getStripeClient()
-  const pricing = getActivationPricing(input.session.roll_preset)
+  const pricing = await getActivationPricing(input.session.roll_preset)
   const appBaseUrl = getAppBaseUrl()
   const sessionDetailPath = `/sessions/${input.session.id}`
+
+  const description = pricing.discountCents > 0 && pricing.discountLabel
+    ? `One-time activation for "${input.session.title}" (${pricing.discountLabel})`
+    : `One-time activation for "${input.session.title}"`
 
   const checkoutParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -48,10 +52,10 @@ export async function createActivationCheckoutSession(
         quantity: 1,
         price_data: {
           currency: pricing.currency,
-          unit_amount: pricing.amountInCents,
+          unit_amount: pricing.finalCents,
           product_data: {
             name: `SnapItNow session activation (${input.session.roll_preset} rolls)`,
-            description: `One-time activation for "${input.session.title}"`,
+            description,
           },
         },
       },
@@ -76,7 +80,7 @@ export async function createActivationCheckoutSession(
   return {
     checkoutSessionId: checkoutSession.id,
     checkoutUrl: checkoutSession.url,
-    amount: pricing.amountInCents,
+    amount: pricing.finalCents,
     currency: pricing.currency,
   }
 }

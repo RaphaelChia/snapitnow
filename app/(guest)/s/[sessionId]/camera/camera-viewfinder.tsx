@@ -99,6 +99,8 @@ export const CameraViewfinder = forwardRef<
         muted
         style={{ filter: cssFilter }}
         className="h-full w-full object-cover"
+        onPause={(e) => { e.currentTarget.play().catch(() => {}) }}
+        onClick={(e) => { e.preventDefault() }}
       />
       {isFrozen && frozenPreviewUrl && (
         <Image

@@ -4,6 +4,8 @@ import {
   useSession,
   useActivateSessionDev,
   useCreateActivationCheckout,
+  useActivationPricing,
+  useUpdateSessionRollPreset,
 } from "@/hooks/use-sessions";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
@@ -18,6 +20,15 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   ArrowLeft,
   Copy,
   Check,
@@ -27,11 +38,16 @@ import {
   ImageIcon,
   QrCode,
   Download,
+  Printer,
+  Maximize2,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useCallback, useRef, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
+import { PhotoSlideshow } from "@/components/photo-slideshow";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -87,9 +103,62 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ShareSection({ sessionId }: { sessionId: string }) {
+function ShareSection({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
   const guestUrl = getGuestUrl(sessionId);
   const [showQr, setShowQr] = useState(true);
+  const qrCanvasRef = useRef<HTMLDivElement>(null);
+
+  const openQrAsImage = useCallback(() => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const w = window.open("");
+    if (w) {
+      w.document.write(
+        `<img src="${dataUrl}" alt="QR Code" style="display:block;margin:2rem auto;" />`
+      );
+      w.document.title = "SnapItNow QR Code";
+    }
+  }, []);
+
+  const openPrintTemplate = useCallback(() => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document
+      .write(`<!DOCTYPE html><html><head><title>QR Template - ${sessionTitle}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@400;500&display=swap');
+  body { font-family: 'Source Sans 3', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #fdf8f6; }
+  .card { text-align: center; padding: 3rem 2.5rem; border: 2px solid #e8cfcf; border-radius: 1.25rem; background: #fff; max-width: 400px; width: 100%; }
+  .title { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #2d2d2d; margin-bottom: 0.4rem; }
+  .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .qr { margin: 0 auto 1.5rem; }
+  .qr img { width: 220px; height: 220px; }
+  .url { font-size: 0.8rem; color: #aaa; word-break: break-all; margin-top: 0.5rem; }
+  .brand { font-family: 'Playfair Display', serif; font-size: 0.75rem; color: #b76e79; margin-top: 1.5rem; letter-spacing: 0.05em; }
+  @media print { body { background: #fff; } .card { border: 1px solid #ddd; box-shadow: none; } }
+</style></head><body>
+<div class="card">
+  <div class="title">${sessionTitle}</div>
+  <div class="subtitle">Scan to capture moments with us</div>
+  <div class="qr"><img src="${dataUrl}" alt="QR Code" /></div>
+  <div class="url">${guestUrl}</div>
+  <div class="brand">SnapItNow</div>
+</div>
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`);
+    w.document.close();
+  }, [guestUrl, sessionTitle]);
 
   return (
     <Card className="motion-safe-fade-up">
@@ -112,8 +181,13 @@ function ShareSection({ sessionId }: { sessionId: string }) {
         </div>
 
         {showQr && (
-          <div className="flex justify-center rounded-lg  bg-white p-6">
-            <QRCodeSVG
+          <div
+            ref={qrCanvasRef}
+            className="flex cursor-pointer justify-center rounded-lg bg-white p-6 transition-opacity hover:opacity-90"
+            onClick={openQrAsImage}
+            title="Click to open QR as image"
+          >
+            <QRCodeCanvas
               value={guestUrl}
               size={200}
               level="M"
@@ -122,14 +196,27 @@ function ShareSection({ sessionId }: { sessionId: string }) {
           </div>
         )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="self-center text-xs text-muted-foreground"
-          onClick={() => setShowQr((v) => !v)}
-        >
-          {showQr ? "Hide QR code" : "Show QR code"}
-        </Button>
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => setShowQr((v) => !v)}
+          >
+            {showQr ? "Hide QR code" : "Show QR code"}
+          </Button>
+          {showQr && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={openPrintTemplate}
+            >
+              <Printer className="mr-1 size-3" />
+              Print template
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -210,20 +297,29 @@ function ConfigSummary({
   );
 }
 
-function PhotoCard({ photo, index }: { photo: PhotoWithUrl; index: number }) {
+function PhotoCard({
+  photo,
+  index,
+  onClick,
+}: {
+  photo: PhotoWithUrl;
+  index: number;
+  onClick?: () => void;
+}) {
   const url = photo.thumbnailUrl ?? photo.signedUrl;
   if (!url) return null;
 
   return (
     <div
-      className="motion-safe-fade-up group relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
+      className="motion-safe-fade-up group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
       style={{ animationDelay: `${index * 45}ms` }}
+      onClick={onClick}
     >
       <Image
         width={100}
         height={100}
         src={url}
-        alt={`Photo by guest`}
+        alt={photo.caption ?? "Photo by guest"}
         className="h-full w-full object-cover transition-transform group-hover:scale-105"
         loading="lazy"
       />
@@ -233,84 +329,305 @@ function PhotoCard({ photo, index }: { photo: PhotoWithUrl; index: number }) {
           target="_blank"
           rel="noopener noreferrer"
           className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex size-10 items-center justify-center rounded-full bg-white/90 shadow-sm">
             <Download className="size-4 text-foreground" />
           </div>
         </a>
       )}
-      {photo.filter_used && (
-        <div className="absolute bottom-1.5 left-1.5">
+      <div className="absolute bottom-1.5 left-1.5 flex flex-col gap-0.5">
+        {photo.filter_used && (
           <Badge
             variant="secondary"
             className="bg-black/50 text-[10px] text-white backdrop-blur-sm"
           >
             {getFilterName(photo.filter_used)}
           </Badge>
-        </div>
-      )}
+        )}
+        {photo.caption && (
+          <Badge
+            variant="secondary"
+            className="bg-black/50 text-[10px] text-white backdrop-blur-sm"
+          >
+            {photo.caption}
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }
 
 function PhotoGallery({ sessionId }: { sessionId: string }) {
   const { data: photos, isLoading, error } = useSessionPhotos(sessionId);
+  const [slideshowOpen, setSlideshowOpen] = useState(false);
+  const [slideshowIndex, setSlideshowIndex] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState("");
+
+  const handleDownloadAll = useCallback(async () => {
+    if (!photos || photos.length === 0 || isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      const zip = new JSZip();
+      const batch = 5;
+      let completed = 0;
+
+      for (let i = 0; i < photos.length; i += batch) {
+        const chunk = photos.slice(i, i + batch);
+        await Promise.all(
+          chunk.map(async (photo, j) => {
+            if (!photo.signedUrl) return;
+            const res = await fetch(photo.signedUrl);
+            const blob = await res.blob();
+            zip.file(`photo-${i + j + 1}.jpg`, blob);
+            completed++;
+            setDownloadProgress(`${completed}/${photos.length}`);
+          })
+        );
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `snapitnow-photos.zip`);
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress("");
+    }
+  }, [photos, isDownloading]);
+
+  const slideshowPhotos = (photos ?? []).filter((p) => p.signedUrl);
 
   return (
-    <Card className="motion-safe-fade-up">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ImageIcon className="size-4" />
-            Photos
+    <>
+      <Card className="motion-safe-fade-up">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ImageIcon className="size-4" />
+              Photos
+              {photos && photos.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {photos.length}
+                </Badge>
+              )}
+            </CardTitle>
             {photos && photos.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {photos.length}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    setSlideshowIndex(0);
+                    setSlideshowOpen(true);
+                  }}
+                >
+                  <Maximize2 className="size-3" />
+                  Slideshow
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  disabled={isDownloading}
+                  onClick={handleDownloadAll}
+                >
+                  <Download className="size-3" />
+                  {isDownloading
+                    ? `Downloading ${downloadProgress}`
+                    : "Download all"}
+                </Button>
+              </div>
             )}
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
           </div>
-        )}
-
-        {error && (
-          <p className="text-sm text-destructive">Failed to load photos.</p>
-        )}
-
-        {photos && photos.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <div className="motion-safe-float flex size-12 items-center justify-center rounded-xl bg-muted">
-              <ImageIcon className="size-6 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              No moments yet. Photos will appear here once guests start
-              capturing.
-            </p>
-          </div>
-        )}
+          )}
 
-        {photos && photos.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {photos.map((photo, index) => (
-              <PhotoCard key={photo.id} photo={photo} index={index} />
-            ))}
+          {error && (
+            <p className="text-sm text-destructive">Failed to load photos.</p>
+          )}
+
+          {photos && photos.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <div className="motion-safe-float flex size-12 items-center justify-center rounded-xl bg-muted">
+                <ImageIcon className="size-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                No moments yet. Photos will appear here once guests start
+                capturing.
+              </p>
+            </div>
+          )}
+
+          {photos && photos.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {photos.map((photo, index) => (
+                <PhotoCard
+                  key={photo.id}
+                  photo={photo}
+                  index={index}
+                  onClick={() => {
+                    setSlideshowIndex(index);
+                    setSlideshowOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <PhotoSlideshow
+        photos={slideshowPhotos}
+        open={slideshowOpen}
+        onOpenChange={setSlideshowOpen}
+        initialIndex={slideshowIndex}
+      />
+    </>
+  );
+}
+
+const ROLL_PRESETS = [8, 12, 24, 36] as const;
+
+function formatCurrency(cents: number, currency: string): string {
+  return new Intl.NumberFormat("en-SG", {
+    style: "currency",
+    currency,
+  }).format(cents / 100);
+}
+
+function ConfirmActivationDialog({
+  open,
+  onOpenChange,
+  sessionId,
+  initialRollPreset,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sessionId: string;
+  initialRollPreset: number;
+}) {
+  const [selectedPreset, setSelectedPreset] = useState(initialRollPreset);
+  const pricingQuery = useActivationPricing(selectedPreset);
+  const updateRollMutation = useUpdateSessionRollPreset();
+  const checkoutMutation = useCreateActivationCheckout();
+  const pricing = pricingQuery.data;
+  const isBusy = updateRollMutation.isPending || checkoutMutation.isPending;
+
+  const handleProceed = useCallback(async () => {
+    if (selectedPreset !== initialRollPreset) {
+      await updateRollMutation.mutateAsync({
+        sessionId,
+        rollPreset: selectedPreset,
+      });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    checkoutMutation.mutate(sessionId, {
+      onSuccess: (result) => {
+        window.location.href = result.checkoutUrl;
+      },
+    });
+  }, [
+    selectedPreset,
+    initialRollPreset,
+    sessionId,
+    updateRollMutation,
+    checkoutMutation,
+  ]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Confirm activation</DialogTitle>
+          <DialogDescription>
+            Review your session settings before proceeding to checkout.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>Moments per guest</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {ROLL_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setSelectedPreset(preset)}
+                  className={`flex h-10 items-center justify-center rounded-xl border text-sm font-medium transition-all duration-200 ${
+                    selectedPreset === preset
+                      ? "border-primary bg-primary text-primary-foreground shadow-romance"
+                      : "border-border bg-background hover:bg-muted"
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {pricing && (
+            <div className="rounded-xl border bg-muted/30 p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Base price</span>
+                <span>
+                  {formatCurrency(pricing.baseCents, pricing.currency)}
+                </span>
+              </div>
+              {pricing.discountCents > 0 && (
+                <div className="mt-1 flex items-center justify-between text-sm">
+                  <span className="text-green-600 dark:text-green-400">
+                    {pricing.discountLabel ?? "Discount"}
+                  </span>
+                  <span className="text-green-600 dark:text-green-400">
+                    -{formatCurrency(pricing.discountCents, pricing.currency)}
+                  </span>
+                </div>
+              )}
+              <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm font-semibold">
+                <span>Total</span>
+                <span>
+                  {formatCurrency(pricing.finalCents, pricing.currency)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {pricingQuery.isLoading && (
+            <div className="flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 max-sm:gap-1">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isBusy}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleProceed} disabled={isBusy || !pricing}>
+            {isBusy ? "Redirecting to checkout..." : "Proceed to checkout"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
   const activateDevMutation = useActivateSessionDev();
-  const activationCheckoutMutation = useCreateActivationCheckout();
   const isDev = process.env.NODE_ENV !== "production";
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -371,51 +688,51 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         </div>
 
         {session.status === "draft" && (
-          <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
-            <p>
-              This memory is <strong>getting ready</strong>. Guests can join
-              after you activate this session through a one-time payment.
-            </p>
-            <p className="div flex items-center gap-1.5 opacity-100">
-              <Lock className="size-3.5" /> Secure checkout via Stripe.
-            </p>
-            <Button
-              type="button"
-              size="sm"
-              className="mt-3"
-              disabled={activationCheckoutMutation.isPending}
-              onClick={() => {
-                activationCheckoutMutation.mutate(session.id, {
-                  onSuccess: (result) => {
-                    window.location.href = result.checkoutUrl;
-                  },
-                });
-              }}
-            >
-              {activationCheckoutMutation.isPending
-                ? "Redirecting to checkout..."
-                : "Activate"}
-            </Button>
-            {isDev && (
+          <>
+            <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
+              <p>
+                This memory is <strong>getting ready</strong>. Guests can join
+                after you activate this session through a one-time payment.
+              </p>
+              <p className="flex items-center gap-1.5">
+                <Lock className="size-3.5" /> Secure checkout via Stripe.
+              </p>
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
-                className="mt-2"
-                disabled={activateDevMutation.isPending}
-                onClick={() => activateDevMutation.mutate(session.id)}
+                className="mt-3"
+                onClick={() => setActivationDialogOpen(true)}
               >
-                {activateDevMutation.isPending
-                  ? "Activating..."
-                  : "Activate session (Dev)"}
+                Activate
               </Button>
-            )}
-          </div>
+              {isDev && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  disabled={activateDevMutation.isPending}
+                  onClick={() => activateDevMutation.mutate(session.id)}
+                >
+                  {activateDevMutation.isPending
+                    ? "Activating..."
+                    : "Activate session (Dev)"}
+                </Button>
+              )}
+            </div>
+
+            <ConfirmActivationDialog
+              open={activationDialogOpen}
+              onOpenChange={setActivationDialogOpen}
+              sessionId={session.id}
+              initialRollPreset={session.roll_preset}
+            />
+          </>
         )}
       </div>
 
       <div className="flex flex-col gap-4">
-        <ShareSection sessionId={sessionId} />
+        <ShareSection sessionId={sessionId} sessionTitle={session.title} />
 
         <ConfigSummary
           rollPreset={session.roll_preset}
