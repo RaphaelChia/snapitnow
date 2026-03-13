@@ -115,9 +115,24 @@ export function GuestEntryClient({
       ? cameraInitQuery.error
       : null;
 
+  const resetToRequestStep = useCallback(() => {
+    // iOS Chrome can throw when focused input unmounts during keyboard transitions.
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+
+    requestOtpMutation.reset();
+    verifyOtpMutation.reset();
+    setAuthStep("requestOtp");
+    setOtp("");
+    setError(null);
+    setMessage(null);
+  }, [requestOtpMutation, verifyOtpMutation]);
+
   if (status !== "active") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
+      <main className="mx-auto flex min-h-full max-h-[calc(100vh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>{title}</CardTitle>
@@ -132,7 +147,7 @@ export function GuestEntryClient({
 
   if (isCheckingPriorSession) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
+      <main className="mx-auto flex min-h-full max-h-[calc(100vh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Join {title}</CardTitle>
@@ -152,7 +167,7 @@ export function GuestEntryClient({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-8">
+    <main className="mx-auto flex  w-full max-w-md flex-1 items-center px-4 py-8 ">
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
@@ -165,7 +180,7 @@ export function GuestEntryClient({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div key={authStep} className="motion-safe-fade-up">
+          <div className="motion-safe-fade-up">
             {isRequestStep ? (
               <form className="space-y-4" onSubmit={requestOtp}>
                 <div className="space-y-1.5">
@@ -232,14 +247,7 @@ export function GuestEntryClient({
                   variant="ghost"
                   className="mt-4 w-full"
                   disabled={isVerifySubmitting}
-                  onClick={() => {
-                    requestOtpMutation.reset();
-                    verifyOtpMutation.reset();
-                    setAuthStep("requestOtp");
-                    setOtp("");
-                    setError(null);
-                    setMessage(null);
-                  }}
+                  onClick={resetToRequestStep}
                 >
                   Use a different email
                 </Button>
