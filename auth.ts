@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { upsertHost } from "@/lib/db/mutations/hosts";
+import { isHostAdmin } from "@/lib/db/queries/admin-users";
 import { env } from "@/lib/env";
 
 function getHostIdFromAccount(input: {
@@ -50,19 +51,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.log("signIn3", user);
       return true;
     },
-    jwt({ token, account, trigger }) {
-      if (trigger !== "signIn") return token;
-      const hostId = getHostIdFromAccount({
-        provider: account?.provider,
-        providerAccountId: account?.providerAccountId,
-      });
-      if (hostId) token.hostId = hostId;
+    async jwt({ token, account, trigger }) {
+      if (trigger === "signIn") {
+        const hostId = getHostIdFromAccount({
+          provider: account?.provider,
+          providerAccountId: account?.providerAccountId,
+        });
+        if (hostId) token.hostId = hostId;
+      }
+      if (typeof token.hostId === "string") {
+        token.isAdmin = await isHostAdmin(token.hostId);
+      } else {
+        token.isAdmin = false;
+      }
 
       return token;
     },
-    session({ session, token }) {
+    async session({ session, token }) {
       if (typeof token.hostId === "string") {
         session.user.id = token.hostId;
+        session.user.isAdmin = await isHostAdmin(token.hostId);
+      } else {
+        session.user.isAdmin = false;
       }
       return session;
     },

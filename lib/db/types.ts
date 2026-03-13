@@ -319,6 +319,64 @@ export type Database = {
           }
         ];
       };
+      admin_users: {
+        Row: {
+          granted_at: string;
+          granted_by: string | null;
+          host_id: string;
+          id: string;
+          notes: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          role: string;
+          status: string;
+        };
+        Insert: {
+          granted_at?: string;
+          granted_by?: string | null;
+          host_id: string;
+          id?: string;
+          notes?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          role?: string;
+          status?: string;
+        };
+        Update: {
+          granted_at?: string;
+          granted_by?: string | null;
+          host_id?: string;
+          id?: string;
+          notes?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          role?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_users_granted_by_fkey";
+            columns: ["granted_by"];
+            isOneToOne: false;
+            referencedRelation: "hosts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_users_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "hosts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_users_revoked_by_fkey";
+            columns: ["revoked_by"];
+            isOneToOne: false;
+            referencedRelation: "hosts";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       audit_events: {
         Row: {
           actor_id: string | null;

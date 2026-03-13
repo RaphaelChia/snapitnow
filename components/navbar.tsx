@@ -63,6 +63,11 @@ export function Navbar() {
             <div className="size-9 animate-pulse rounded-full bg-muted" />
           ) : session?.user ? (
             <>
+              {session.user.isAdmin && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/admin">Admin</Link>
+                </Button>
+              )}
               <span className="hidden text-sm text-muted-foreground sm:inline">
                 {session.user.name}
               </span>

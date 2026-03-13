@@ -113,6 +113,47 @@ export async function endSessionByHost(
   return data as Session
 }
 
+export async function forceExpireSessionByAdmin(sessionId: string): Promise<Session> {
+  const db = createServerClient()
+  const endUpdate: Database["public"]["Tables"]["sessions"]["Update"] = {
+    status: "expired",
+    ended_at: new Date().toISOString(),
+    ended_by: "admin",
+    end_reason: "admin_force_expire",
+  }
+  const { data, error } = await db
+    .from("sessions")
+    .update(endUpdate)
+    .eq("id", sessionId)
+    .in("status", ["draft", "active"])
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}
+
+export async function forceReactivateSessionByAdmin(sessionId: string): Promise<Session> {
+  const db = createServerClient()
+  const activateUpdate: Database["public"]["Tables"]["sessions"]["Update"] = {
+    status: "active",
+    activated_at: new Date().toISOString(),
+    ended_at: null,
+    ended_by: null,
+    end_reason: null,
+  }
+  const { data, error } = await db
+    .from("sessions")
+    .update(activateUpdate)
+    .eq("id", sessionId)
+    .eq("status", "expired")
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}
+
 export async function updateWeddingDateOnce(
   sessionId: string,
   hostId: string,
