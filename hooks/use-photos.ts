@@ -41,6 +41,7 @@ export type GuestSessionPhotosResponse = {
     id: string;
     title: string;
     roll_preset: number;
+    status: "draft" | "active" | "expired";
   };
   visibility: GuestPhotoVisibility;
   photos: GuestPhotoWithUrl[];

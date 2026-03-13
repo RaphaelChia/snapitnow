@@ -5,6 +5,8 @@ import {
   useActivateSessionDev,
   useCreateActivationCheckout,
   useActivationPricing,
+  useEndSession,
+  useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
@@ -27,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   Copy,
@@ -39,6 +42,7 @@ import {
   Download,
   Printer,
   Maximize2,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
@@ -227,13 +231,29 @@ function ConfigSummary({
   fixedFilter,
   allowedFilters,
   hasPassword,
+  weddingDateLocal,
+  eventTimezone,
+  canUpdateWeddingDate,
+  weddingDateInputValue,
+  isUpdatingWeddingDate,
+  onWeddingDateInputChange,
+  onWeddingDateSubmit,
 }: {
   rollPreset: number;
   filterMode: string;
   fixedFilter: string | null;
   allowedFilters: string[] | null;
   hasPassword: boolean;
+  weddingDateLocal: string | null;
+  eventTimezone: string | null;
+  canUpdateWeddingDate: boolean;
+  weddingDateInputValue: string;
+  isUpdatingWeddingDate: boolean;
+  onWeddingDateInputChange: (value: string) => void;
+  onWeddingDateSubmit: () => void;
 }) {
+  const [isEditingWeddingDate, setIsEditingWeddingDate] = useState(false);
+
   return (
     <Card className="motion-safe-fade-up" style={{ animationDelay: "60ms" }}>
       <CardHeader>
@@ -290,7 +310,63 @@ function ConfigSummary({
           <div className="font-medium">
             {hasPassword ? "Protected" : "Open access"}
           </div>
+
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Film className="size-3.5" />
+            Wedding date
+          </div>
+          <div className="flex items-center gap-2 font-medium">
+            <span>{weddingDateLocal ?? "Not set"}</span>
+            {canUpdateWeddingDate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setIsEditingWeddingDate((prev) => !prev)}
+                aria-label="Edit wedding date"
+              >
+                <Pencil className="size-3.5" />
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="size-3.5" />
+            Event timezone
+          </div>
+          <div className="font-medium">{eventTimezone ?? "UTC"}</div>
         </div>
+
+        {canUpdateWeddingDate && isEditingWeddingDate && (
+          <div className="flex flex-col gap-1">
+            <form
+              className="mt-2 flex items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                onWeddingDateSubmit();
+              }}
+            >
+              <Input
+                id="weddingDateUpdate"
+                type="date"
+                value={weddingDateInputValue}
+                onChange={(e) => onWeddingDateInputChange(e.target.value)}
+                required
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={isUpdatingWeddingDate}
+              >
+                {isUpdatingWeddingDate ? "Saving..." : "Save date"}
+              </Button>
+            </form>
+            <p className="px-1 text-xs text-muted-foreground">
+              Wedding date can only be changed once after creation.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -522,16 +598,12 @@ function ConfirmActivationDialog({
     checkoutMutation.mutate(
       { sessionId, rollPreset: selectedPreset },
       {
-      onSuccess: (result) => {
-        window.location.href = result.checkoutUrl;
-      },
+        onSuccess: (result) => {
+          window.location.href = result.checkoutUrl;
+        },
       }
     );
-  }, [
-    selectedPreset,
-    sessionId,
-    checkoutMutation,
-  ]);
+  }, [selectedPreset, sessionId, checkoutMutation]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -615,8 +687,12 @@ function ConfirmActivationDialog({
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
   const activateDevMutation = useActivateSessionDev();
+  const endSessionMutation = useEndSession();
+  const updateWeddingDateMutation = useUpdateWeddingDate();
   const isDev = process.env.NODE_ENV !== "production";
   const [activationDialogOpen, setActivationDialogOpen] = useState(false);
+  const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [weddingDateLocal, setWeddingDateLocal] = useState("");
 
   if (isLoading) {
     return (
@@ -647,6 +723,9 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       </main>
     );
   }
+
+  const weddingDateInputValue =
+    weddingDateLocal || session.wedding_date_local || "";
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
@@ -729,10 +808,70 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
           fixedFilter={session.fixed_filter}
           allowedFilters={session.allowed_filters}
           hasPassword={!!session.password_hash}
+          weddingDateLocal={session.wedding_date_local}
+          eventTimezone={session.event_timezone}
+          canUpdateWeddingDate={
+            session.status !== "expired" &&
+            session.wedding_date_update_count < 1
+          }
+          weddingDateInputValue={weddingDateInputValue}
+          isUpdatingWeddingDate={updateWeddingDateMutation.isPending}
+          onWeddingDateInputChange={setWeddingDateLocal}
+          onWeddingDateSubmit={() =>
+            updateWeddingDateMutation.mutate({
+              sessionId: session.id,
+              weddingDateLocal: weddingDateInputValue,
+              eventTimezone: session.event_timezone ?? "UTC",
+            })
+          }
         />
 
         <PhotoGallery sessionId={sessionId} />
       </div>
+
+      {session.status === "active" && (
+        <div className="mt-6">
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-full"
+            onClick={() => setEndDialogOpen(true)}
+          >
+            End session
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>End this session?</DialogTitle>
+            <DialogDescription>
+              This cannot be undone. Uploads will stop immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEndDialogOpen(false)}
+              disabled={endSessionMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={endSessionMutation.isPending}
+              onClick={() =>
+                endSessionMutation.mutate(sessionId, {
+                  onSuccess: () => setEndDialogOpen(false),
+                })
+              }
+            >
+              {endSessionMutation.isPending ? "Ending..." : "End session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

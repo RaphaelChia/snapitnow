@@ -10,6 +10,8 @@ export interface CreateSessionInput {
   fixed_filter?: string | null
   allowed_filters?: string[] | null
   roll_preset: number
+  wedding_date_local: string
+  event_timezone: string
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
@@ -22,6 +24,8 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
     fixed_filter: input.fixed_filter ?? null,
     allowed_filters: input.allowed_filters ?? null,
     roll_preset: input.roll_preset,
+    wedding_date_local: input.wedding_date_local,
+    event_timezone: input.event_timezone,
   }
   const { data, error } = await db
     .from("sessions")
@@ -78,6 +82,56 @@ export async function activateSession(
     .eq("id", sessionId)
     .eq("host_id", hostId)
     .eq("status", "draft")
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}
+
+export async function endSessionByHost(
+  sessionId: string,
+  hostId: string,
+): Promise<Session> {
+  const db = createServerClient()
+  const endUpdate: Database["public"]["Tables"]["sessions"]["Update"] = {
+    status: "expired",
+    ended_at: new Date().toISOString(),
+    ended_by: "host",
+    end_reason: "manual",
+  }
+  const { data, error } = await db
+    .from("sessions")
+    .update(endUpdate)
+    .eq("id", sessionId)
+    .eq("host_id", hostId)
+    .eq("status", "active")
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}
+
+export async function updateWeddingDateOnce(
+  sessionId: string,
+  hostId: string,
+  weddingDateLocal: string,
+  eventTimezone: string,
+): Promise<Session> {
+  const db = createServerClient()
+  const updatePayload: Database["public"]["Tables"]["sessions"]["Update"] = {
+    wedding_date_local: weddingDateLocal,
+    event_timezone: eventTimezone,
+    wedding_date_update_count: 1,
+  }
+  const { data, error } = await db
+    .from("sessions")
+    .update(updatePayload)
+    .eq("id", sessionId)
+    .eq("host_id", hostId)
+    .neq("status", "expired")
+    .eq("wedding_date_update_count", 0)
     .select("*")
     .single()
 

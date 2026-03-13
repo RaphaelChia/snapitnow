@@ -7,6 +7,8 @@ import {
   createSession,
   deleteSession,
   activateSession,
+  endSessionByHost,
+  updateWeddingDateOnce,
   updateSessionRollPreset,
 } from "@/lib/db/mutations/sessions";
 import {
@@ -28,6 +30,33 @@ import {
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
+import { recordAuditEvent } from "@/lib/db/mutations/audit-events";
+
+function isValidIanaTimezone(value: string): boolean {
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getCurrentLocalDateForTimezone(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const readPart = (partType: Intl.DateTimeFormatPartTypes): string => {
+    const part = parts.find((entry) => entry.type === partType);
+    if (!part) {
+      throw new Error(`Missing "${partType}" date part`);
+    }
+    return part.value;
+  };
+  return `${readPart("year")}-${readPart("month")}-${readPart("day")}`;
+}
 
 const createSessionSchema = z
   .object({
@@ -39,6 +68,13 @@ const createSessionSchema = z
       message: "Roll preset must be 8, 12, 24, or 36",
     }),
     password: z.string().max(64).nullable().optional(),
+    wedding_date_local: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Wedding date must be YYYY-MM-DD"),
+    event_timezone: z
+      .string()
+      .min(1, "Event timezone is required")
+      .refine((value) => isValidIanaTimezone(value), "Invalid timezone"),
   })
   .refine(
     (d) =>
@@ -49,6 +85,13 @@ const createSessionSchema = z
       message:
         "Fixed mode requires a filter selection; preset mode requires at least 2 filters",
     }
+  )
+  .refine(
+    (d) => d.wedding_date_local >= getCurrentLocalDateForTimezone(d.event_timezone),
+    {
+      message: "Wedding date cannot be in the past",
+      path: ["wedding_date_local"],
+    },
   );
 
 export type CreateSessionFormData = z.infer<typeof createSessionSchema>;
@@ -123,6 +166,8 @@ export async function createNewSession(
     allowed_filters: parsed.allowed_filters ?? null,
     roll_preset: parsed.roll_preset,
     password_hash: parsed.password ?? null,
+    wedding_date_local: parsed.wedding_date_local,
+    event_timezone: parsed.event_timezone,
   });
 }
 
@@ -133,6 +178,17 @@ export async function removeSession(sessionId: string): Promise<void> {
 
 const activateSessionSchema = z.string().uuid();
 const createActivationCheckoutSchema = z.string().uuid();
+const endSessionSchema = z.string().uuid();
+const updateWeddingDateSchema = z.object({
+  sessionId: z.string().uuid(),
+  weddingDateLocal: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Wedding date must be YYYY-MM-DD"),
+  eventTimezone: z
+    .string()
+    .min(1, "Event timezone is required")
+    .refine((value) => isValidIanaTimezone(value), "Invalid timezone"),
+});
 const activationRollPresetSchema = z
   .number()
   .refine((v) => [8, 12, 24, 36].includes(v), {
@@ -304,4 +360,75 @@ export async function updateRollPreset(
   const parsedPreset = activationRollPresetSchema.parse(rollPreset);
 
   return updateSessionRollPreset(parsedId, userId, parsedPreset);
+}
+
+export async function endSessionManual(sessionId: string): Promise<Session> {
+  const userId = await getAuthenticatedUserId();
+  const parsedId = endSessionSchema.parse(sessionId);
+  const endedSession = await endSessionByHost(parsedId, userId);
+
+  await recordAuditEvent({
+    entityType: "session",
+    entityId: endedSession.id,
+    eventType: "session.ended.manual",
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      fromStatus: "active",
+      toStatus: "expired",
+      endedAt: endedSession.ended_at,
+      endReason: endedSession.end_reason,
+    },
+  });
+
+  return endedSession;
+}
+
+export async function updateWeddingDate(
+  input: {
+    sessionId: string;
+    weddingDateLocal: string;
+    eventTimezone: string;
+  }
+): Promise<Session> {
+  const userId = await getAuthenticatedUserId();
+  const parsedInput = updateWeddingDateSchema.parse(input);
+  const existing = await getSessionById(parsedInput.sessionId);
+
+  if (!existing || existing.host_id !== userId) {
+    throw new Error("Session not found");
+  }
+  if (existing.wedding_date_update_count >= 1) {
+    throw new Error("Wedding date can only be updated once");
+  }
+  if (
+    parsedInput.weddingDateLocal <
+    getCurrentLocalDateForTimezone(parsedInput.eventTimezone)
+  ) {
+    throw new Error("Wedding date cannot be in the past");
+  }
+
+  const updatedSession = await updateWeddingDateOnce(
+    parsedInput.sessionId,
+    userId,
+    parsedInput.weddingDateLocal,
+    parsedInput.eventTimezone
+  );
+
+  await recordAuditEvent({
+    entityType: "session",
+    entityId: updatedSession.id,
+    eventType: "session.wedding_date.updated",
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      previousWeddingDateLocal: existing.wedding_date_local,
+      previousEventTimezone: existing.event_timezone,
+      weddingDateLocal: updatedSession.wedding_date_local,
+      eventTimezone: updatedSession.event_timezone,
+      weddingDateUpdateCount: updatedSession.wedding_date_update_count,
+    },
+  });
+
+  return updatedSession;
 }

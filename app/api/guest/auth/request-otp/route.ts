@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await getSessionById(sessionId)
-    if (!session || session.status !== "active") {
-      return NextResponse.json({ error: "Session is not active" }, { status: 404 })
+    if (!session || (session.status !== "active" && session.status !== "expired")) {
+      return NextResponse.json({ error: "Session is not available" }, { status: 404 })
     }
 
     if (session.password_hash && session.password_hash !== (password ?? "")) {

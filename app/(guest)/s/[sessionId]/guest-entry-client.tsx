@@ -44,6 +44,8 @@ export function GuestEntryClient({
   const requestOtpMutation = useRequestOtp();
   const verifyOtpMutation = useVerifyOtp();
   const cameraInitQuery = useGuestCameraInit(sessionId, status === "active");
+  const isActive = status === "active";
+  const isExpired = status === "expired";
 
   useEffect(() => {
     if (cameraInitQuery.data) {
@@ -93,20 +95,22 @@ export function GuestEntryClient({
           email,
           otp,
         });
-
-        router.replace(`/s/${sessionId}/camera`);
+        if (isActive) {
+          router.replace(`/s/${sessionId}/camera`);
+          return;
+        }
+        router.replace(`/s/${sessionId}/gallery`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to verify OTP");
       }
     },
-    [email, otp, router, sessionId, verifyOtpMutation]
+    [email, otp, router, sessionId, verifyOtpMutation, isActive]
   );
 
   const isRequestSubmitting = requestOtpMutation.isPending;
   const isVerifySubmitting = verifyOtpMutation.isPending;
   const isRequestStep = authStep === "requestOtp";
-  const isCheckingPriorSession =
-    status === "active" && cameraInitQuery.isPending;
+  const isCheckingPriorSession = isActive && cameraInitQuery.isPending;
   const isUnauthenticated =
     cameraInitQuery.error instanceof GuestApiError &&
     cameraInitQuery.error.status === 401;
@@ -130,7 +134,7 @@ export function GuestEntryClient({
     setMessage(null);
   }, [requestOtpMutation, verifyOtpMutation]);
 
-  if (status !== "active") {
+  if (status === "draft") {
     return (
       <main className="mx-auto flex min-h-full max-h-[calc(100vh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
         <Card className="w-full">
@@ -174,8 +178,9 @@ export function GuestEntryClient({
             Join the Celebration of {title}
           </CardTitle>
           <CardDescription>
-            Everyone is given a limited number of shots to capture everything in
-            the moment.
+            {isExpired
+              ? `Thank you for being part of ${title}'s celebration. Uploads are now closed, but you can still verify access to view the gallery.`
+              : "Everyone is given a limited number of shots to capture everything in the moment."}
             {isRequestStep ? "" : ` Enter the code we sent to ${email}.`}
           </CardDescription>
         </CardHeader>
@@ -239,7 +244,11 @@ export function GuestEntryClient({
                     className="w-full"
                     disabled={isVerifySubmitting}
                   >
-                    {isVerifySubmitting ? "Verifying..." : "Verify code"}
+                    {isVerifySubmitting
+                      ? "Verifying..."
+                      : isExpired
+                      ? "Verify and view gallery"
+                      : "Verify code"}
                   </Button>
                 </form>
                 <Button

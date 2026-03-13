@@ -64,16 +64,17 @@ export default function GuestGalleryPage() {
     0,
     data.visibility.unlockThreshold - data.visibility.shotsTaken
   );
+  const isSessionExpired = data.session.status === "expired";
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="motion-safe-fade-up mb-4 flex items-center justify-between gap-3">
         <Link
-          href={`/s/${sessionId}/camera`}
+          href={isSessionExpired ? `/s/${sessionId}` : `/s/${sessionId}/camera`}
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
-          Back to capture
+          {isSessionExpired ? "Back to session" : "Back to capture"}
         </Link>
         <Button
           type="button"
@@ -105,6 +106,7 @@ export default function GuestGalleryPage() {
               : `Capture ${missingShots} more moment${
                   missingShots === 1 ? "" : "s"
                 } to unlock our full album.`}
+            {isSessionExpired ? " Uploads are closed for this session." : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

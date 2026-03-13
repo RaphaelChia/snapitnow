@@ -35,11 +35,13 @@ export type CameraInitResponse = {
 
 export class GuestApiError extends Error {
   status: number;
+  details: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, details?: unknown) {
     super(message);
     this.name = "GuestApiError";
     this.status = status;
+    this.details = details ?? null;
   }
 }
 
@@ -71,7 +73,11 @@ async function fetchGuestCameraInit(
   const res = await fetch(`/api/sessions/${sessionId}/camera-init`);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new GuestApiError(body.error || "Failed to load session", res.status);
+    throw new GuestApiError(
+      body.error || "Failed to load session",
+      res.status,
+      body
+    );
   }
   return body as CameraInitResponse;
 }

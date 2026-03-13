@@ -24,8 +24,8 @@ export async function GET(
     }
 
     const session = await getSessionById(sessionId)
-    if (!session || session.status !== "active") {
-      return NextResponse.json({ error: "Session not found or not active" }, { status: 404 })
+    if (!session || (session.status !== "active" && session.status !== "expired")) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 })
     }
 
     const db = createServerClient()
@@ -42,7 +42,8 @@ export async function GET(
 
     const guestSession = gsData as unknown as GuestSession
     const unlockThreshold = Math.ceil(session.roll_preset / 2)
-    const galleryUnlocked = guestSession.shots_taken >= unlockThreshold
+    const galleryUnlocked =
+      session.status === "expired" || guestSession.shots_taken >= unlockThreshold
 
     const basePhotos = galleryUnlocked
       ? await listSessionPhotos(sessionId)
@@ -71,6 +72,7 @@ export async function GET(
         id: session.id,
         title: session.title,
         roll_preset: session.roll_preset,
+        status: session.status,
       },
       visibility: {
         shotsTaken: guestSession.shots_taken,
