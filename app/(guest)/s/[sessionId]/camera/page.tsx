@@ -13,6 +13,14 @@ import type { FilterId } from "@/lib/filters/presets";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 import { Button } from "@/components/ui/button";
 
+function getExpiredSessionTitle(error: GuestApiError): string | null {
+  if (!error.details || typeof error.details !== "object") {
+    return null;
+  }
+  const title = Reflect.get(error.details, "title");
+  return typeof title === "string" ? title : null;
+}
+
 export default function GuestCameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -33,8 +41,11 @@ export default function GuestCameraPage() {
   const isUnauthenticated =
     cameraInitQuery.error instanceof GuestApiError &&
     cameraInitQuery.error.status === 401;
+  const isSessionExpired =
+    cameraInitQuery.error instanceof GuestApiError &&
+    cameraInitQuery.error.status === 410;
   const queryErrorMessage =
-    cameraInitQuery.isError && !isUnauthenticated
+    cameraInitQuery.isError && !isUnauthenticated && !isSessionExpired
       ? cameraInitQuery.error instanceof Error
         ? cameraInitQuery.error.message
         : "Failed to load"
@@ -137,6 +148,23 @@ export default function GuestCameraPage() {
     return (
       <div className="flex h-dvh items-center justify-center bg-black">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      </div>
+    );
+  }
+
+  if (isSessionExpired && cameraInitQuery.error instanceof GuestApiError) {
+    const title = getExpiredSessionTitle(cameraInitQuery.error);
+    return (
+      <div className="flex h-[calc(100dvh-56px)] items-center justify-center bg-black px-6 text-center">
+        <div className="space-y-3">
+          <p className="text-sm text-white/90">
+            Thank you for being part of {title ?? "this celebration"}.
+          </p>
+          <p className="text-xs text-white/60">Uploads are now closed.</p>
+          <Button asChild variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10">
+            <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
+          </Button>
+        </div>
       </div>
     );
   }

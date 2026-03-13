@@ -15,7 +15,16 @@ export async function GET(
   }
 
   const session = await getSessionById(sessionId)
-  if (!session || session.status !== "active") {
+  if (!session) {
+    return NextResponse.json({ error: "Session not found or not active" }, { status: 404 })
+  }
+  if (session.status === "expired") {
+    return NextResponse.json(
+      { error: "Session has ended", status: "expired", title: session.title },
+      { status: 410 },
+    )
+  }
+  if (session.status !== "active") {
     return NextResponse.json({ error: "Session not found or not active" }, { status: 404 })
   }
 

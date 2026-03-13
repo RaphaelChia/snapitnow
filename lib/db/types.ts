@@ -319,6 +319,45 @@ export type Database = {
           }
         ];
       };
+      audit_events: {
+        Row: {
+          actor_id: string | null;
+          actor_type: string;
+          correlation_id: string | null;
+          entity_id: string;
+          entity_type: string;
+          event_type: string;
+          id: string;
+          metadata: Json;
+          occurred_at: string;
+          request_id: string | null;
+        };
+        Insert: {
+          actor_id?: string | null;
+          actor_type: string;
+          correlation_id?: string | null;
+          entity_id: string;
+          entity_type: string;
+          event_type: string;
+          id?: string;
+          metadata?: Json;
+          occurred_at?: string;
+          request_id?: string | null;
+        };
+        Update: {
+          actor_id?: string | null;
+          actor_type?: string;
+          correlation_id?: string | null;
+          entity_id?: string;
+          entity_type?: string;
+          event_type?: string;
+          id?: string;
+          metadata?: Json;
+          occurred_at?: string;
+          request_id?: string | null;
+        };
+        Relationships: [];
+      };
       stripe_webhook_events: {
         Row: {
           error_message: string | null;
@@ -420,6 +459,10 @@ export type Database = {
           activated_at: string | null;
           allowed_filters: Json | null;
           created_at: string;
+          ended_at: string | null;
+          ended_by: string | null;
+          end_reason: string | null;
+          event_timezone: string | null;
           expires_at: string | null;
           filter_mode: string;
           fixed_filter: string | null;
@@ -429,11 +472,17 @@ export type Database = {
           roll_preset: number;
           status: string;
           title: string;
+          wedding_date_local: string | null;
+          wedding_date_update_count: number;
         };
         Insert: {
           activated_at?: string | null;
           allowed_filters?: Json | null;
           created_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_reason?: string | null;
+          event_timezone?: string | null;
           expires_at?: string | null;
           filter_mode?: string;
           fixed_filter?: string | null;
@@ -443,11 +492,17 @@ export type Database = {
           roll_preset?: number;
           status?: string;
           title: string;
+          wedding_date_local?: string | null;
+          wedding_date_update_count?: number;
         };
         Update: {
           activated_at?: string | null;
           allowed_filters?: Json | null;
           created_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_reason?: string | null;
+          event_timezone?: string | null;
           expires_at?: string | null;
           filter_mode?: string;
           fixed_filter?: string | null;
@@ -457,6 +512,8 @@ export type Database = {
           roll_preset?: number;
           status?: string;
           title?: string;
+          wedding_date_local?: string | null;
+          wedding_date_update_count?: number;
         };
         Relationships: [
           {

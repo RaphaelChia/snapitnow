@@ -9,6 +9,8 @@ import {
   activateSessionForDev,
   createActivationCheckout,
   fetchActivationPricing,
+  endSessionManual,
+  updateWeddingDate,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 import type { ActivationPricing } from "@/lib/payments/activation-pricing"
@@ -74,6 +76,34 @@ export function useCreateActivationCheckout() {
   return useMutation({
     mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: number }) =>
       createActivationCheckout(sessionId, rollPreset),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })
+    },
+  })
+}
+
+export function useEndSession() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sessionId: string) => endSessionManual(sessionId),
+    onSuccess: (_, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) })
+    },
+  })
+}
+
+export function useUpdateWeddingDate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: {
+      sessionId: string
+      weddingDateLocal: string
+      eventTimezone: string
+    }) => updateWeddingDate(input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
       queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })

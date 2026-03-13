@@ -25,6 +25,14 @@ import { Check } from "lucide-react";
 const ROLL_PRESETS = [8, 12, 24, 36] as const;
 const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id));
 
+function getBrowserLocalDate(): string {
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function FilterPreviewCard({
   filterId,
   name,
@@ -39,9 +47,8 @@ function FilterPreviewCard({
   onSelect: () => void;
 }) {
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
       onClick={onSelect}
       className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 motion-safe-fade-up ${
         selected
@@ -79,7 +86,7 @@ function FilterPreviewCard({
           {description}
         </p>
       </div>
-    </Button>
+    </button>
   );
 }
 
@@ -98,6 +105,9 @@ export function CreateSessionDialog({
   const [fixedFilter, setFixedFilter] = useState<FilterId>("vintage");
   const [allowedFilters, setAllowedFilters] = useState<FilterId[]>([]);
   const [password, setPassword] = useState("");
+  const [weddingDateLocal, setWeddingDateLocal] = useState(
+    getBrowserLocalDate()
+  );
 
   function toggleAllowedFilter(id: FilterId) {
     setAllowedFilters((prev) =>
@@ -108,6 +118,7 @@ export function CreateSessionDialog({
   const canSubmit =
     title.trim() &&
     !createMutation.isPending &&
+    weddingDateLocal &&
     (filterMode === "fixed" ? !!fixedFilter : allowedFilters.length >= 2);
 
   function handleSubmit(e: React.FormEvent) {
@@ -121,6 +132,9 @@ export function CreateSessionDialog({
         fixed_filter: filterMode === "fixed" ? fixedFilter : null,
         allowed_filters: filterMode === "preset" ? allowedFilters : null,
         password: password || null,
+        wedding_date_local: weddingDateLocal,
+        event_timezone:
+          Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       },
       {
         onSuccess: () => {
@@ -130,6 +144,7 @@ export function CreateSessionDialog({
           setFixedFilter("vintage");
           setAllowedFilters([]);
           setPassword("");
+          setWeddingDateLocal(getBrowserLocalDate());
           onOpenChange(false);
         },
       }
@@ -255,6 +270,22 @@ export function CreateSessionDialog({
               onChange={(e) => setPassword(e.target.value)}
               maxLength={64}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="weddingDate">Wedding date</Label>
+            <Input
+              id="weddingDate"
+              type="date"
+              value={weddingDateLocal}
+              onChange={(e) => setWeddingDateLocal(e.target.value)}
+              min={getBrowserLocalDate()}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Uploads auto-close at the end of the next day in your event
+              timezone.
+            </p>
           </div>
 
           <DialogFooter>
