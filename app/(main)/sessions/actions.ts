@@ -30,7 +30,13 @@ import {
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
-import { recordAuditEvent } from "@/lib/db/mutations/audit-events";
+import {
+  auditSessionActivationCheckoutStarted,
+  auditSessionCreated,
+  auditSessionDeleted,
+  auditSessionEndedManual,
+  auditSessionWeddingDateUpdated,
+} from "@/lib/audit/domain/session";
 
 function isValidIanaTimezone(value: string): boolean {
   try {
@@ -158,7 +164,7 @@ export async function createNewSession(
   const userId = await getAuthenticatedUserId();
   const parsed = createSessionSchema.parse(input);
 
-  return createSession({
+  const created = await createSession({
     host_id: userId,
     title: parsed.title,
     filter_mode: parsed.filter_mode,
@@ -169,11 +175,40 @@ export async function createNewSession(
     wedding_date_local: parsed.wedding_date_local,
     event_timezone: parsed.event_timezone,
   });
+
+  await auditSessionCreated({
+    sessionId: created.id,
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      title: created.title,
+      status: created.status,
+      rollPreset: created.roll_preset,
+      filterMode: created.filter_mode,
+      weddingDateLocal: created.wedding_date_local,
+      eventTimezone: created.event_timezone,
+    },
+  });
+
+  return created;
 }
 
 export async function removeSession(sessionId: string): Promise<void> {
   const userId = await getAuthenticatedUserId();
+  const existing = await getSessionById(sessionId);
+  if (!existing || existing.host_id !== userId) {
+    throw new Error("Session not found");
+  }
   await deleteSession(sessionId, userId);
+  await auditSessionDeleted({
+    sessionId,
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      previousStatus: existing?.status ?? null,
+      title: existing?.title ?? null,
+    },
+  });
 }
 
 const activateSessionSchema = z.string().uuid();
@@ -341,6 +376,19 @@ export async function createActivationCheckout(
     throw error;
   }
 
+  await auditSessionActivationCheckoutStarted({
+    sessionId: session.id,
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      rollPreset: session.roll_preset,
+      amount: checkoutSession.amount,
+      currency: checkoutSession.currency,
+      stripeCheckoutSessionId: checkoutSession.checkoutSessionId,
+      checkoutIntent: expectedCheckoutIntent,
+    },
+  });
+
   return { checkoutUrl: checkoutSession.checkoutUrl };
 }
 
@@ -367,10 +415,8 @@ export async function endSessionManual(sessionId: string): Promise<Session> {
   const parsedId = endSessionSchema.parse(sessionId);
   const endedSession = await endSessionByHost(parsedId, userId);
 
-  await recordAuditEvent({
-    entityType: "session",
-    entityId: endedSession.id,
-    eventType: "session.ended.manual",
+  await auditSessionEndedManual({
+    sessionId: endedSession.id,
     actorType: "host",
     actorId: userId,
     metadata: {
@@ -415,10 +461,8 @@ export async function updateWeddingDate(
     parsedInput.eventTimezone
   );
 
-  await recordAuditEvent({
-    entityType: "session",
-    entityId: updatedSession.id,
-    eventType: "session.wedding_date.updated",
+  await auditSessionWeddingDateUpdated({
+    sessionId: updatedSession.id,
     actorType: "host",
     actorId: userId,
     metadata: {

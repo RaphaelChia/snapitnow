@@ -2,7 +2,7 @@ import "server-only";
 import { createServerClient } from "../index";
 import type { Database, Json } from "../types";
 
-type ActorType = "host" | "guest" | "system" | "cron" | "webhook";
+type ActorType = "host" | "admin" | "guest" | "system" | "cron" | "webhook";
 
 export type RecordAuditEventInput = {
   entityType: string;
@@ -32,7 +32,7 @@ async function resolveActorSnapshot(
 
   const db = createServerClient();
 
-  if (actorType === "host") {
+  if (actorType === "host" || actorType === "admin") {
     const { data } = await db
       .from("hosts")
       .select("name,email")

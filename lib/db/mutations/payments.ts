@@ -2,6 +2,7 @@ import "server-only"
 import { z } from "zod"
 import { createServerClient } from "../index"
 import type { Database, Json } from "../types"
+import { auditSessionActivatedPaymentSucceeded } from "@/lib/audit/domain/session"
 
 const checkoutMetadataSchema = z.object({
   sessionId: z.string().uuid(),
@@ -267,6 +268,20 @@ export async function processCheckoutSessionCompleted(
   })
 
   if (error) throw error
+
+  if (parsedMetadata.data.paymentType === ACTIVATION_PAYMENT_TYPE) {
+    await auditSessionActivatedPaymentSucceeded({
+      sessionId: parsedMetadata.data.sessionId,
+      actorType: "webhook",
+      metadata: {
+        hostId: parsedMetadata.data.hostId,
+        stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+        stripePaymentIntentId: input.stripePaymentIntentId,
+        amount: input.amount,
+        currency: toLowerCurrency(input.currency),
+      },
+    })
+  }
 }
 
 export async function processCheckoutSessionExpired(
