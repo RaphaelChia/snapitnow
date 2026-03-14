@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 import { Heart, Camera, Users, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"

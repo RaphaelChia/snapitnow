@@ -109,14 +109,12 @@ export type PhotoWithUrl = Photo & {
 
 async function getAuthenticatedUserId(): Promise<string> {
   const session = await auth();
-  console.log("getAuthenticatedUserId", session);
   if (!session?.user?.id) throw new Error("Unauthorized");
   return session.user.id;
 }
 
 export async function fetchHostSessions(): Promise<Session[]> {
   const userId = await getAuthenticatedUserId();
-  console.log("fetchHostSessions", userId);
   return listHostSessions(userId);
 }
 

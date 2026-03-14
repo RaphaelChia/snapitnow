@@ -26,7 +26,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
-      console.log("signIn1", user);
       const hostId = getHostIdFromAccount({
         provider: account?.provider,
         providerAccountId: account?.providerAccountId,
@@ -37,7 +36,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
-      console.log("signIn2", user);
       try {
         await upsertHost({
           id: hostId,
@@ -48,7 +46,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       } catch (error) {
         console.error("Error upserting host", error);
       }
-      console.log("signIn3", user);
       return true;
     },
     async jwt({ token, account, trigger }) {
