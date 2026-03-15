@@ -12,6 +12,7 @@ const checkoutMetadataSchema = z.object({
 
 export const ACTIVATION_PAYMENT_TYPE = "one_time_session"
 const STRIPE_WEBHOOK_STATUS_PROCESSING = "processing"
+const STRIPE_WEBHOOK_LEASE_MS = 2 * 60 * 1000
 type RawEventSnapshot = Exclude<
   Database["public"]["Tables"]["payments"]["Insert"]["raw_event_snapshot"],
   undefined
@@ -102,15 +103,34 @@ type ClaimStripeWebhookEventResult =
   | "duplicate_processed"
   | "already_processing"
 
+function buildStripeWebhookLease(now: Date): {
+  processingStartedAt: string
+  leaseExpiresAt: string
+} {
+  const processingStartedAt = now.toISOString()
+  const leaseExpiresAt = new Date(now.getTime() + STRIPE_WEBHOOK_LEASE_MS).toISOString()
+  return { processingStartedAt, leaseExpiresAt }
+}
+
+function leaseExpired(leaseExpiresAt: string | null, now: Date): boolean {
+  if (!leaseExpiresAt) return true
+  return Date.parse(leaseExpiresAt) <= now.getTime()
+}
+
 export async function claimStripeWebhookEvent(
   stripeEventId: string,
   eventType: string,
 ): Promise<ClaimStripeWebhookEventResult> {
   const db = createServerClient()
+  const now = new Date()
+  const lease = buildStripeWebhookLease(now)
   const webhookEventInsert: Database["public"]["Tables"]["stripe_webhook_events"]["Insert"] = {
     stripe_event_id: stripeEventId,
     event_type: eventType,
     status: STRIPE_WEBHOOK_STATUS_PROCESSING,
+    processing_started_at: lease.processingStartedAt,
+    lease_expires_at: lease.leaseExpiresAt,
+    attempt_count: 1,
   }
 
   const { error } = await db.from("stripe_webhook_events").insert(webhookEventInsert)
@@ -120,21 +140,63 @@ export async function claimStripeWebhookEvent(
 
   const { data: existing, error: existingError } = await db
     .from("stripe_webhook_events")
-    .select("status")
+    .select("status, lease_expires_at, attempt_count")
     .eq("stripe_event_id", stripeEventId)
     .maybeSingle()
 
   if (existingError) throw existingError
   if (!existing) return "already_processing"
   if (existing.status === "processed") return "duplicate_processed"
-  if (existing.status === STRIPE_WEBHOOK_STATUS_PROCESSING) return "already_processing"
+
+  if (existing.status === STRIPE_WEBHOOK_STATUS_PROCESSING) {
+    if (!leaseExpired(existing.lease_expires_at, now)) {
+      return "already_processing"
+    }
+
+    const staleProcessingUpdate: Database["public"]["Tables"]["stripe_webhook_events"]["Update"] = {
+      status: STRIPE_WEBHOOK_STATUS_PROCESSING,
+      processing_started_at: lease.processingStartedAt,
+      lease_expires_at: lease.leaseExpiresAt,
+      processed_at: null,
+      error_message: null,
+      attempt_count: (existing.attempt_count ?? 0) + 1,
+    }
+
+    const { data: reclaimedExpiredLease, error: reclaimExpiredError } = await db
+      .from("stripe_webhook_events")
+      .update(staleProcessingUpdate)
+      .eq("stripe_event_id", stripeEventId)
+      .eq("status", STRIPE_WEBHOOK_STATUS_PROCESSING)
+      .lte("lease_expires_at", now.toISOString())
+      .select("stripe_event_id")
+      .maybeSingle()
+
+    if (reclaimExpiredError) throw reclaimExpiredError
+    if (reclaimedExpiredLease) return "claimed"
+
+    const { data: reclaimedMissingLease, error: reclaimMissingError } = await db
+      .from("stripe_webhook_events")
+      .update(staleProcessingUpdate)
+      .eq("stripe_event_id", stripeEventId)
+      .eq("status", STRIPE_WEBHOOK_STATUS_PROCESSING)
+      .is("lease_expires_at", null)
+      .select("stripe_event_id")
+      .maybeSingle()
+
+    if (reclaimMissingError) throw reclaimMissingError
+    if (reclaimedMissingLease) return "claimed"
+    return "already_processing"
+  }
 
   const { data: claimedExisting, error: claimExistingError } = await db
     .from("stripe_webhook_events")
     .update({
       status: STRIPE_WEBHOOK_STATUS_PROCESSING,
+      processing_started_at: lease.processingStartedAt,
+      lease_expires_at: lease.leaseExpiresAt,
       processed_at: null,
       error_message: null,
+      attempt_count: (existing.attempt_count ?? 0) + 1,
     })
     .eq("stripe_event_id", stripeEventId)
     .in("status", ["failed", "ignored"])
@@ -238,6 +300,8 @@ export async function finalizeStripeWebhookEvent(
     status,
     processed_at: new Date().toISOString(),
     error_message: errorMessage ?? null,
+    processing_started_at: null,
+    lease_expires_at: null,
   }
 
   const { error } = await db

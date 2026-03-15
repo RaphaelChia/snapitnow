@@ -61,20 +61,29 @@ export async function POST(req: NextRequest) {
     }
 
     const guestSession = gsData as unknown as GuestSession
-
-    if (guestSession.shots_remaining <= 0) {
-      return NextResponse.json({ error: "No shots remaining" }, { status: 403 })
-    }
-
-    const photo = await createPhotoRecord({
-      session_id: sessionId,
-      host_id: session.host_id,
-      guest_user_id: guestUserId,
-      filter_used: filterUsed,
-      caption,
-    })
-
+    let reservedShot = false
+    let photoId: string | null = null
     try {
+      const { data: reserveRows, error: reserveError } = await db.rpc("reserve_guest_shot", {
+        p_guest_session_id: guestSession.id,
+      })
+      if (reserveError) {
+        throw reserveError
+      }
+      if (!reserveRows || reserveRows.length === 0) {
+        return NextResponse.json({ error: "No shots remaining" }, { status: 403 })
+      }
+      reservedShot = true
+
+      const photo = await createPhotoRecord({
+        session_id: sessionId,
+        host_id: session.host_id,
+        guest_user_id: guestUserId,
+        filter_used: filterUsed,
+        caption,
+      })
+      photoId = photo.id
+
       const storage = getStorageService()
       const buffer = Buffer.from(await file.arrayBuffer())
 
@@ -106,7 +115,20 @@ export async function POST(req: NextRequest) {
         objectKey: photo.object_key,
       })
     } catch (uploadError) {
-      await markPhotoFailed(photo.id)
+      if (photoId) {
+        await markPhotoFailed(photoId)
+      }
+      if (reservedShot) {
+        const { error: releaseError } = await db.rpc("release_guest_shot", {
+          p_guest_session_id: guestSession.id,
+        })
+        if (releaseError) {
+          console.error("Failed to release reserved shot after upload failure", {
+            guestSessionId: guestSession.id,
+            releaseError,
+          })
+        }
+      }
       throw uploadError
     }
   } catch (error) {

@@ -418,27 +418,36 @@ export type Database = {
       };
       stripe_webhook_events: {
         Row: {
+          attempt_count: number;
           error_message: string | null;
           event_type: string;
           id: string;
+          lease_expires_at: string | null;
+          processing_started_at: string | null;
           processed_at: string | null;
           received_at: string;
           status: string;
           stripe_event_id: string;
         };
         Insert: {
+          attempt_count?: number;
           error_message?: string | null;
           event_type: string;
           id?: string;
+          lease_expires_at?: string | null;
+          processing_started_at?: string | null;
           processed_at?: string | null;
           received_at?: string;
           status?: string;
           stripe_event_id: string;
         };
         Update: {
+          attempt_count?: number;
           error_message?: string | null;
           event_type?: string;
           id?: string;
+          lease_expires_at?: string | null;
+          processing_started_at?: string | null;
           processed_at?: string | null;
           received_at?: string;
           status?: string;
@@ -600,6 +609,26 @@ export type Database = {
           p_raw_event_snapshot: Json;
         };
         Returns: string;
+      };
+      release_guest_shot: {
+        Args: {
+          p_guest_session_id: string;
+        };
+        Returns: {
+          id: string;
+          shots_remaining: number;
+          shots_taken: number;
+        }[];
+      };
+      reserve_guest_shot: {
+        Args: {
+          p_guest_session_id: string;
+        };
+        Returns: {
+          id: string;
+          shots_remaining: number;
+          shots_taken: number;
+        }[];
       };
     };
     Enums: {

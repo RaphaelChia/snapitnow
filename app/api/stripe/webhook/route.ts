@@ -51,8 +51,14 @@ export async function POST(req: NextRequest) {
     eventType = event.type
 
     const claimResult = await claimStripeWebhookEvent(event.id, event.type)
-    if (claimResult !== "claimed") {
+    if (claimResult === "duplicate_processed") {
       return NextResponse.json({ ok: true, duplicate: true, state: claimResult })
+    }
+    if (claimResult === "already_processing") {
+      return NextResponse.json(
+        { error: "Webhook event is currently being processed" },
+        { status: 409 },
+      )
     }
 
     const rawEventSnapshot = buildRawSnapshot(event)
