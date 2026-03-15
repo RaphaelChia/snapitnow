@@ -49,8 +49,6 @@ import { useCallback, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
 import { PhotoSlideshow } from "@/components/photo-slideshow";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -445,6 +443,10 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
     setIsDownloading(true);
 
     try {
+      const [{ default: JSZip }, { saveAs }] = await Promise.all([
+        import("jszip"),
+        import("file-saver"),
+      ]);
       const zip = new JSZip();
       const batch = 5;
       let completed = 0;

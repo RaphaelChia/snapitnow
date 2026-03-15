@@ -1,6 +1,6 @@
 "use client";
 
-import { useHostSessions, useDeleteSession } from "@/hooks/use-sessions";
+import { useHostSessionsWithInitial, useDeleteSession } from "@/hooks/use-sessions";
 import { Camera, Plus, Trash2, Users, Film, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,8 +101,12 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
-export function Dashboard() {
-  const { data: sessions, isLoading, error } = useHostSessions();
+export function Dashboard({
+  initialSessions,
+}: {
+  initialSessions?: Session[];
+}) {
+  const { data: sessions, isLoading, error } = useHostSessionsWithInitial(initialSessions);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (

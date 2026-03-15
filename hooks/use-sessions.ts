@@ -14,6 +14,7 @@ import {
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 import type { ActivationPricing } from "@/lib/payments/activation-pricing"
+import type { Session } from "@/lib/db/types"
 
 export const sessionKeys = {
   all: ["sessions"] as const,
@@ -25,6 +26,13 @@ export function useHostSessions() {
   return useQuery({
     queryKey: sessionKeys.list(),
     queryFn: () => fetchHostSessions(),
+  })
+}
+export function useHostSessionsWithInitial(initialData?: Session[]) {
+  return useQuery({
+    queryKey: sessionKeys.list(),
+    queryFn: () => fetchHostSessions(),
+    initialData,
   })
 }
 

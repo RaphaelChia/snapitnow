@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google";
-import { AuthProvider } from "@/lib/auth/provider";
-import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
@@ -48,9 +46,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );
