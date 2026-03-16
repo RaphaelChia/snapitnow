@@ -166,7 +166,7 @@ function ShareSection({
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@400;500&display=swap');
-  body { font-family: 'Source Sans 3', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #fdf8f6; }
+  body { font-family: 'Source Sans 3', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100svh; background: #fdf8f6; }
   .card { text-align: center; padding: 3rem 2.5rem; border: 2px solid #e8cfcf; border-radius: 1.25rem; background: #fff; max-width: 400px; width: 100%; }
   .title { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #2d2d2d; margin-bottom: 0.4rem; }
   .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 1.5rem; }

@@ -136,7 +136,7 @@ export function GuestEntryClient({
 
   if (status === "draft") {
     return (
-      <main className="mx-auto flex min-h-full max-h-[calc(100vh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
+      <main className="mx-auto flex min-h-full max-h-[calc(100svh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>{title}</CardTitle>
@@ -151,7 +151,7 @@ export function GuestEntryClient({
 
   if (isCheckingPriorSession) {
     return (
-      <main className="mx-auto flex min-h-full max-h-[calc(100vh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
+      <main className="mx-auto flex min-h-full max-h-[calc(100svh-64px)] w-full max-w-md flex-1 items-center px-4 py-8">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Join {title}</CardTitle>
@@ -247,8 +247,8 @@ export function GuestEntryClient({
                     {isVerifySubmitting
                       ? "Verifying..."
                       : isExpired
-                      ? "Verify and view gallery"
-                      : "Verify code"}
+                        ? "Verify and view gallery"
+                        : "Verify code"}
                   </Button>
                 </form>
                 <Button
