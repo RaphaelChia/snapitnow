@@ -1,13 +1,14 @@
 import "server-only"
 import { createServerClient } from "../index"
 import type { Database } from "../types"
+import { parseRollPreset, type RollPreset } from "@/lib/domain/roll-presets"
 
 type DiscountRow = Database["public"]["Tables"]["discounts"]["Row"]
 type DiscountInsert = Database["public"]["Tables"]["discounts"]["Insert"]
 type DiscountUpdate = Database["public"]["Tables"]["discounts"]["Update"]
 
 export type CreateDiscountInput = {
-  rollPreset: 8 | 12 | 24 | 36
+  rollPreset: RollPreset
   discountPercent: number
   label?: string | null
   active: boolean
@@ -15,14 +16,14 @@ export type CreateDiscountInput = {
 
 export type UpdateDiscountInput = {
   id: string
-  rollPreset?: 8 | 12 | 24 | 36
+  rollPreset?: RollPreset
   discountPercent?: number
   label?: string | null
   active?: boolean
 }
 
 async function deactivateOtherActiveDiscounts(
-  rollPreset: 8 | 12 | 24 | 36,
+  rollPreset: RollPreset,
   currentDiscountId?: string
 ): Promise<void> {
   const db = createServerClient()
@@ -76,7 +77,7 @@ export async function updateDiscount(input: UpdateDiscountInput): Promise<Discou
 
   if (existingError) throw existingError
 
-  const targetRollPreset = (input.rollPreset ?? existing.roll_preset) as 8 | 12 | 24 | 36
+  const targetRollPreset = parseRollPreset(input.rollPreset ?? existing.roll_preset)
   if (input.active === true) {
     await deactivateOtherActiveDiscounts(targetRollPreset, input.id)
   }

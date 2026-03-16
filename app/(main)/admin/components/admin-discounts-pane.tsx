@@ -18,12 +18,24 @@ import {
   useAdminDiscounts,
   useAdminUpdateDiscount,
 } from "@/hooks/use-admin"
+import {
+  parseRollPresetString,
+  type RollPreset,
+  type RollPresetString,
+} from "@/lib/domain/roll-presets"
 
 type DiscountDraft = {
-  rollPreset: "8" | "12" | "24" | "36"
+  rollPreset: RollPresetString
   discountPercent: string
   label: string
   active: "active" | "inactive"
+}
+
+function toOptionalRollPreset(
+  value: "all" | DiscountDraft["rollPreset"]
+): RollPreset | undefined {
+  if (value === "all") return undefined
+  return parseRollPresetString(value)
 }
 
 function toDraft(input: {
@@ -33,7 +45,7 @@ function toDraft(input: {
   active: boolean
 }): DiscountDraft {
   return {
-    rollPreset: String(input.roll_preset) as DiscountDraft["rollPreset"],
+    rollPreset: String(input.roll_preset) as RollPresetString,
     discountPercent: String(input.discount_percent),
     label: input.label ?? "",
     active: input.active ? "active" : "inactive",
@@ -47,10 +59,10 @@ function getErrorMessage(error: unknown): string | null {
 }
 
 export function AdminDiscountsPane() {
-  const [filterRollPreset, setFilterRollPreset] = useState<"all" | "8" | "12" | "24" | "36">("all")
+  const [filterRollPreset, setFilterRollPreset] = useState<"all" | RollPresetString>("all")
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all")
 
-  const [createRollPreset, setCreateRollPreset] = useState<"8" | "12" | "24" | "36">("8")
+  const [createRollPreset, setCreateRollPreset] = useState<RollPresetString>("8")
   const [createDiscountPercent, setCreateDiscountPercent] = useState("0")
   const [createLabel, setCreateLabel] = useState("")
   const [createActive, setCreateActive] = useState<"active" | "inactive">("active")
@@ -59,7 +71,7 @@ export function AdminDiscountsPane() {
 
   const discountFilters = useMemo(
     () => ({
-      rollPreset: filterRollPreset === "all" ? undefined : Number(filterRollPreset),
+      rollPreset: toOptionalRollPreset(filterRollPreset),
       active: filterActive,
       limit: 100,
     }),
@@ -114,7 +126,7 @@ export function AdminDiscountsPane() {
     const percent = Number(createDiscountPercent)
     createDiscountMutation.mutate(
       {
-        rollPreset: Number(createRollPreset) as 8 | 12 | 24 | 36,
+        rollPreset: parseRollPresetString(createRollPreset),
         discountPercent: Number.isFinite(percent) ? percent : 0,
         label: createLabel.trim() || undefined,
         active: createActive === "active",
@@ -137,7 +149,7 @@ export function AdminDiscountsPane() {
     updateDiscountMutation.mutate(
       {
         id: discountId,
-        rollPreset: Number(draft.rollPreset) as 8 | 12 | 24 | 36,
+        rollPreset: parseRollPresetString(draft.rollPreset),
         discountPercent: Number.isFinite(percent) ? percent : 0,
         label: draft.label.trim() ? draft.label.trim() : null,
         active: draft.active === "active",
@@ -165,7 +177,10 @@ export function AdminDiscountsPane() {
         <div className="space-y-2 rounded-lg border border-border/60 p-3">
           <p className="text-sm font-medium">Create discount</p>
           <div className="grid gap-2 sm:grid-cols-4">
-            <Select value={createRollPreset} onValueChange={(value) => setCreateRollPreset(value as "8" | "12" | "24" | "36")}>
+            <Select
+              value={createRollPreset}
+              onValueChange={(value) => setCreateRollPreset(value as RollPresetString)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Roll preset" />
               </SelectTrigger>
@@ -205,7 +220,12 @@ export function AdminDiscountsPane() {
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <Select value={filterRollPreset} onValueChange={(value) => setFilterRollPreset(value as "all" | "8" | "12" | "24" | "36")}>
+          <Select
+            value={filterRollPreset}
+            onValueChange={(value) =>
+              setFilterRollPreset(value as "all" | RollPresetString)
+            }
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by roll preset" />
             </SelectTrigger>
@@ -241,7 +261,7 @@ export function AdminDiscountsPane() {
                     <Select
                       value={draft.rollPreset}
                       onValueChange={(value) =>
-                        updateDraft(discount.id, { rollPreset: value as "8" | "12" | "24" | "36" })
+                        updateDraft(discount.id, { rollPreset: value as RollPresetString })
                       }
                     >
                       <SelectTrigger className="w-full">

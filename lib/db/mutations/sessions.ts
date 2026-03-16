@@ -1,6 +1,7 @@
 import "server-only"
 import { createServerClient } from "../index"
 import type { Database, Session, FilterMode } from "../types"
+import type { RollPreset } from "@/lib/domain/roll-presets"
 
 export interface CreateSessionInput {
   host_id: string
@@ -9,7 +10,7 @@ export interface CreateSessionInput {
   filter_mode: FilterMode
   fixed_filter?: string | null
   allowed_filters?: string[] | null
-  roll_preset: number
+  roll_preset: RollPreset
   wedding_date_local: string
   event_timezone: string
 }
@@ -51,7 +52,7 @@ export async function deleteSession(sessionId: string, hostId: string): Promise<
 export async function updateSessionRollPreset(
   sessionId: string,
   hostId: string,
-  rollPreset: number,
+  rollPreset: RollPreset,
 ): Promise<Session> {
   const db = createServerClient()
   const { data, error } = await db

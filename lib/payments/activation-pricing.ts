@@ -1,6 +1,7 @@
 import "server-only"
 import { createServerClient } from "@/lib/db"
 import { getReferralDiscountPercentForHost } from "@/lib/db/queries/referrals"
+import type { RollPreset } from "@/lib/domain/roll-presets"
 
 export type ActivationPricing = {
   baseCents: number
@@ -10,7 +11,7 @@ export type ActivationPricing = {
   currency: "sgd"
 }
 
-const BASE_PRICES: Record<number, number> = {
+const BASE_PRICES: Record<RollPreset, number> = {
   8: 5900,
   12: 6500,
   24: 7200,
@@ -18,7 +19,7 @@ const BASE_PRICES: Record<number, number> = {
 }
 
 export async function getActivationPricing(
-  rollPreset: number,
+  rollPreset: RollPreset,
   hostId?: string
 ): Promise<ActivationPricing> {
   const baseCents = BASE_PRICES[rollPreset]
