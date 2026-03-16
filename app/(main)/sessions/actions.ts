@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { auth } from "@/auth";
 import { z } from "zod";
 import { listHostSessions, getSessionById } from "@/lib/db/queries/sessions";
@@ -241,6 +242,20 @@ function hasErrorCode(error: unknown, expectedCode: string): boolean {
   return Reflect.get(error, "code") === expectedCode;
 }
 
+function buildActivationCheckoutIdempotencyKey(input: {
+  sessionId: string;
+  hostId: string;
+  checkoutIntent: unknown;
+}): string {
+  const payload = JSON.stringify({
+    sessionId: input.sessionId,
+    hostId: input.hostId,
+    checkoutIntent: input.checkoutIntent,
+  });
+  const digest = createHash("sha256").update(payload).digest("hex");
+  return `activation-checkout:${digest}`;
+}
+
 export async function activateSessionForDev(
   sessionId: string
 ): Promise<Session> {
@@ -321,7 +336,7 @@ export async function createActivationCheckout(
         return { checkoutUrl: snapshot.url };
       }
 
-      if (pendingIntentMatches && snapshot?.status === "complete") {
+      if (snapshot?.status === "complete") {
         throw new Error(
           "A payment is already completing for this session. Please refresh in a moment."
         );
@@ -340,6 +355,11 @@ export async function createActivationCheckout(
     session,
     hostId: userId,
     pricing,
+    idempotencyKey: buildActivationCheckoutIdempotencyKey({
+      sessionId: session.id,
+      hostId: userId,
+      checkoutIntent: expectedCheckoutIntent,
+    }),
   });
 
   try {
