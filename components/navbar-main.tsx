@@ -59,8 +59,6 @@ function BrandMark() {
 export function MainNavbar() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
-  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
-  const referralQuery = useMyReferralOverview(!!session?.user);
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border/80 bg-background/90 backdrop-blur-md">
