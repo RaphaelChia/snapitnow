@@ -15,6 +15,8 @@ import { CreateSessionDialog } from "./create-session-dialog";
 import { useState } from "react";
 import Link from "next/link";
 import type { Session } from "@/lib/db/types";
+import { useMyReferralOverview } from "@/hooks/use-referrals";
+import { ReferralShareCard } from "@/components/referral-share-card";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -107,6 +109,7 @@ export function Dashboard({
   initialSessions?: Session[];
 }) {
   const { data: sessions, isLoading, error } = useHostSessionsWithInitial(initialSessions);
+  const referralQuery = useMyReferralOverview();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
@@ -124,6 +127,12 @@ export function Dashboard({
           </Button>
         )}
       </div>
+
+      {referralQuery.data?.code && (
+        <div className="mb-4">
+          <ReferralShareCard code={referralQuery.data.code} expandable />
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex flex-col gap-3">

@@ -15,6 +15,7 @@ import {
   deleteDiscount,
   updateDiscount,
 } from "@/lib/db/mutations/discounts"
+import { ROLL_PRESET_VALUES } from "@/lib/domain/roll-presets"
 import { getSessionById } from "@/lib/db/queries/sessions"
 import {
   auditSessionExpiredAdminForce,
@@ -45,7 +46,14 @@ const adminAuditFilterSchema = z.object({
   limit: z.number().int().min(1).max(300).optional(),
 })
 
-const rollPresetSchema = z.union([z.literal(8), z.literal(12), z.literal(24), z.literal(36)])
+const rollPresetSchema = z.union(
+  ROLL_PRESET_VALUES.map((value) => z.literal(value)) as [
+    z.ZodLiteral<8>,
+    z.ZodLiteral<12>,
+    z.ZodLiteral<24>,
+    z.ZodLiteral<36>,
+  ]
+)
 
 const adminDiscountFilterSchema = z.object({
   rollPreset: rollPresetSchema.optional(),

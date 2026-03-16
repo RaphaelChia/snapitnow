@@ -8,6 +8,7 @@ import {
   useEndSession,
   useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
+import { useMyReferralOverview } from "@/hooks/use-referrals";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
@@ -49,6 +50,12 @@ import { useCallback, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
 import { PhotoSlideshow } from "@/components/photo-slideshow";
+import { ReferralShareCard } from "@/components/referral-share-card";
+import {
+  parseRollPreset,
+  ROLL_PRESET_VALUES,
+  type RollPreset,
+} from "@/lib/domain/roll-presets";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -118,15 +125,15 @@ function ShareSection({
   const qrCanvasRef = useRef<HTMLDivElement>(null);
   const escapedPasscode = sessionPasscode
     ? sessionPasscode.replace(/[&<>"']/g, (char) => {
-        const entities: Record<string, string> = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        };
-        return entities[char] ?? char;
-      })
+      const entities: Record<string, string> = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
+      return entities[char] ?? char;
+    })
     : null;
 
   const openQrAsImage = useCallback(() => {
@@ -260,7 +267,7 @@ function ConfigSummary({
   onWeddingDateInputChange,
   onWeddingDateSubmit,
 }: {
-  rollPreset: number;
+  rollPreset: RollPreset;
   filterMode: string;
   fixedFilter: string | null;
   allowedFilters: string[] | null;
@@ -593,8 +600,6 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
   );
 }
 
-const ROLL_PRESETS = [8, 12, 24, 36] as const;
-
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-SG", {
     style: "currency",
@@ -611,9 +616,9 @@ function ConfirmActivationDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionId: string;
-  initialRollPreset: number;
+  initialRollPreset: RollPreset;
 }) {
-  const [selectedPreset, setSelectedPreset] = useState(initialRollPreset);
+  const [selectedPreset, setSelectedPreset] = useState<RollPreset>(initialRollPreset);
   const pricingQuery = useActivationPricing(selectedPreset);
   const checkoutMutation = useCreateActivationCheckout();
   const pricing = pricingQuery.data;
@@ -644,7 +649,7 @@ function ConfirmActivationDialog({
           <div className="flex flex-col gap-1.5">
             <Label>Moments per guest</Label>
             <div className="grid grid-cols-4 gap-2">
-              {ROLL_PRESETS.map((preset) => (
+              {ROLL_PRESET_VALUES.map((preset) => (
                 <Button
                   key={preset}
                   type="button"
@@ -711,6 +716,7 @@ function ConfirmActivationDialog({
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
+  const referralQuery = useMyReferralOverview();
   const activateDevMutation = useActivateSessionDev();
   const endSessionMutation = useEndSession();
   const updateWeddingDateMutation = useUpdateWeddingDate();
@@ -818,13 +824,15 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
               open={activationDialogOpen}
               onOpenChange={setActivationDialogOpen}
               sessionId={session.id}
-              initialRollPreset={session.roll_preset}
+              initialRollPreset={parseRollPreset(session.roll_preset)}
             />
           </>
         )}
       </div>
 
       <div className="flex flex-col gap-4">
+
+
         <ShareSection
           sessionId={sessionId}
           sessionTitle={session.title}
@@ -832,7 +840,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         />
 
         <ConfigSummary
-          rollPreset={session.roll_preset}
+          rollPreset={parseRollPreset(session.roll_preset)}
           filterMode={session.filter_mode}
           fixedFilter={session.fixed_filter}
           allowedFilters={session.allowed_filters}

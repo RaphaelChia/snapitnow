@@ -33,6 +33,8 @@ export type ActivationCheckoutIntent = {
   discountCents: number
   finalCents: number
   currency: "sgd"
+  discountSource: "referral" | "campaign" | "none"
+  discountPercentApplied: number
 }
 
 function getAppBaseUrl(): string {
@@ -98,12 +100,24 @@ export function buildActivationCheckoutIntent(
   rollPreset: number,
   pricing: ActivationPricing,
 ): ActivationCheckoutIntent {
+  const discountPercentApplied = pricing.baseCents > 0
+    ? Math.round((pricing.discountCents / pricing.baseCents) * 100)
+    : 0
+  const discountSource: ActivationCheckoutIntent["discountSource"] =
+    pricing.discountCents <= 0
+      ? "none"
+      : (pricing.discountLabel ?? "").toLowerCase().includes("referral")
+        ? "referral"
+        : "campaign"
+
   return {
     roll_preset: rollPreset,
     baseCents: pricing.baseCents,
     discountCents: pricing.discountCents,
     finalCents: pricing.finalCents,
     currency: pricing.currency,
+    discountSource,
+    discountPercentApplied,
   }
 }
 

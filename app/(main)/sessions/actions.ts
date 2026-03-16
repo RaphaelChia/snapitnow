@@ -27,6 +27,12 @@ import {
   getActivationPricing,
   type ActivationPricing,
 } from "@/lib/payments/activation-pricing";
+import {
+  parseRollPreset,
+  ROLL_PRESET_VALUES,
+  isRollPreset,
+  type RollPreset,
+} from "@/lib/domain/roll-presets";
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
@@ -70,8 +76,8 @@ const createSessionSchema = z
     filter_mode: z.enum(["fixed", "preset"]),
     fixed_filter: z.string().nullable().optional(),
     allowed_filters: z.array(z.string()).nullable().optional(),
-    roll_preset: z.number().refine((v) => [8, 12, 24, 36].includes(v), {
-      message: "Roll preset must be 8, 12, 24, or 36",
+    roll_preset: z.number().refine((value) => isRollPreset(value), {
+      message: `Roll preset must be ${ROLL_PRESET_VALUES.join(", ")}`,
     }),
     password: z.string().max(64).nullable().optional(),
     wedding_date_local: z
@@ -168,7 +174,7 @@ export async function createNewSession(
     filter_mode: parsed.filter_mode,
     fixed_filter: parsed.fixed_filter ?? null,
     allowed_filters: parsed.allowed_filters ?? null,
-    roll_preset: parsed.roll_preset,
+    roll_preset: parseRollPreset(parsed.roll_preset),
     password_hash: parsed.password ?? null,
     wedding_date_local: parsed.wedding_date_local,
     event_timezone: parsed.event_timezone,
@@ -224,8 +230,8 @@ const updateWeddingDateSchema = z.object({
 });
 const activationRollPresetSchema = z
   .number()
-  .refine((v) => [8, 12, 24, 36].includes(v), {
-    message: "Roll preset must be 8, 12, 24, or 36",
+  .refine((value) => isRollPreset(value), {
+    message: `Roll preset must be ${ROLL_PRESET_VALUES.join(", ")}`,
   });
 
 function hasErrorCode(error: unknown, expectedCode: string): boolean {
@@ -249,11 +255,11 @@ export async function activateSessionForDev(
 
 export async function createActivationCheckout(
   sessionId: string,
-  rollPreset: number
+  rollPreset: RollPreset
 ): Promise<{ checkoutUrl: string }> {
   const userId = await getAuthenticatedUserId();
   const parsedId = createActivationCheckoutSchema.parse(sessionId);
-  const parsedPreset = activationRollPresetSchema.parse(rollPreset);
+  const parsedPreset = parseRollPreset(activationRollPresetSchema.parse(rollPreset));
   let session = await getSessionById(parsedId);
   if (!session || session.host_id !== userId) {
     throw new Error("Session not found");
@@ -266,9 +272,10 @@ export async function createActivationCheckout(
     session = await updateSessionRollPreset(session.id, userId, parsedPreset);
   }
 
-  const pricing = await getActivationPricing(session.roll_preset);
+  const sessionRollPreset = parseRollPreset(session.roll_preset);
+  const pricing = await getActivationPricing(sessionRollPreset, userId);
   const expectedCheckoutIntent = buildActivationCheckoutIntent(
-    session.roll_preset,
+    sessionRollPreset,
     pricing
   );
 
@@ -391,19 +398,19 @@ export async function createActivationCheckout(
 }
 
 export async function fetchActivationPricing(
-  rollPreset: number
+  rollPreset: RollPreset
 ): Promise<ActivationPricing> {
-  await getAuthenticatedUserId();
-  return getActivationPricing(rollPreset);
+  const userId = await getAuthenticatedUserId();
+  return getActivationPricing(rollPreset, userId);
 }
 
 export async function updateRollPreset(
   sessionId: string,
-  rollPreset: number
+  rollPreset: RollPreset
 ): Promise<Session> {
   const userId = await getAuthenticatedUserId();
   const parsedId = z.string().uuid().parse(sessionId);
-  const parsedPreset = activationRollPresetSchema.parse(rollPreset);
+  const parsedPreset = parseRollPreset(activationRollPresetSchema.parse(rollPreset));
 
   return updateSessionRollPreset(parsedId, userId, parsedPreset);
 }

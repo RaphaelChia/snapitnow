@@ -19,10 +19,13 @@ import {
   MVP_FILTER_IDS,
   type FilterId,
 } from "@/lib/filters/presets";
+import {
+  ROLL_PRESET_VALUES,
+  type RollPreset,
+} from "@/lib/domain/roll-presets";
 import { FILTER_CSS } from "@/lib/filters/css";
 import { Check } from "lucide-react";
 
-const ROLL_PRESETS = [8, 12, 24, 36] as const;
 const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id));
 
 function getBrowserLocalDate(): string {
@@ -100,7 +103,7 @@ export function CreateSessionDialog({
   const createMutation = useCreateSession();
 
   const [title, setTitle] = useState("");
-  const [rollPreset, setRollPreset] = useState<number>(12);
+  const [rollPreset, setRollPreset] = useState<RollPreset>(12);
   const [filterMode, setFilterMode] = useState<FilterMode>("fixed");
   const [fixedFilter, setFixedFilter] = useState<FilterId>("vintage");
   const [allowedFilters, setAllowedFilters] = useState<FilterId[]>([]);
@@ -179,7 +182,7 @@ export function CreateSessionDialog({
           <div className="flex flex-col gap-1.5">
             <Label>Moments per guest</Label>
             <div className="grid grid-cols-4 gap-2">
-              {ROLL_PRESETS.map((preset) => (
+              {ROLL_PRESET_VALUES.map((preset) => (
                 <Button
                   key={preset}
                   type="button"

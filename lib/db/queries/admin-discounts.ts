@@ -1,9 +1,10 @@
 import "server-only"
 import { createServerClient } from "../index"
 import type { Database } from "../types"
+import type { RollPreset } from "@/lib/domain/roll-presets"
 
 export type AdminDiscountFilters = {
-  rollPreset?: 8 | 12 | 24 | 36
+  rollPreset?: RollPreset
   active?: "all" | "active" | "inactive"
   limit?: number
 }

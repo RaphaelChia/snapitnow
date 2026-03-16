@@ -13,6 +13,7 @@ import {
   updateWeddingDate,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
+import { type RollPreset } from "@/lib/domain/roll-presets"
 import type { ActivationPricing } from "@/lib/payments/activation-pricing"
 import type { Session } from "@/lib/db/types"
 
@@ -82,7 +83,7 @@ export function useCreateActivationCheckout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: number }) =>
+    mutationFn: ({ sessionId, rollPreset }: { sessionId: string; rollPreset: RollPreset }) =>
       createActivationCheckout(sessionId, rollPreset),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
@@ -120,14 +121,14 @@ export function useUpdateWeddingDate() {
 }
 
 export const pricingKeys = {
-  tier: (rollPreset: number) => ["pricing", rollPreset] as const,
+  tier: (rollPreset: RollPreset) => ["pricing", rollPreset] as const,
 }
 
-export function useActivationPricing(rollPreset: number) {
+export function useActivationPricing(rollPreset: RollPreset) {
   return useQuery<ActivationPricing>({
     queryKey: pricingKeys.tier(rollPreset),
     queryFn: () => fetchActivationPricing(rollPreset),
-    enabled: [8, 12, 24, 36].includes(rollPreset),
+    enabled: true,
   })
 }
 

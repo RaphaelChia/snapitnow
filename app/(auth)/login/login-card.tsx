@@ -52,7 +52,9 @@ export function LoginCard() {
           variant="outline"
           size="lg"
           className="h-12 w-full gap-3"
-          onClick={() => signIn("google", { callbackUrl: "/" })}
+          onClick={() =>
+            signIn("google", { callbackUrl: "/api/referrals/consume" })
+          }
         >
           <GoogleIcon className="size-5" />
           Continue with Google
