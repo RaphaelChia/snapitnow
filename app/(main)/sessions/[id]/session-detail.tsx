@@ -716,7 +716,6 @@ function ConfirmActivationDialog({
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
-  const referralQuery = useMyReferralOverview();
   const activateDevMutation = useActivateSessionDev();
   const endSessionMutation = useEndSession();
   const updateWeddingDateMutation = useUpdateWeddingDate();
