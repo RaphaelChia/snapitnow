@@ -107,13 +107,27 @@ function CopyButton({ text }: { text: string }) {
 function ShareSection({
   sessionId,
   sessionTitle,
+  sessionPasscode,
 }: {
   sessionId: string;
   sessionTitle: string;
+  sessionPasscode?: string | null;
 }) {
   const guestUrl = getGuestUrl(sessionId);
   const [showQr, setShowQr] = useState(true);
   const qrCanvasRef = useRef<HTMLDivElement>(null);
+  const escapedPasscode = sessionPasscode
+    ? sessionPasscode.replace(/[&<>"']/g, (char) => {
+        const entities: Record<string, string> = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+        return entities[char] ?? char;
+      })
+    : null;
 
   const openQrAsImage = useCallback(() => {
     const canvas = qrCanvasRef.current?.querySelector("canvas");
@@ -132,6 +146,12 @@ function ShareSection({
     const canvas = qrCanvasRef.current?.querySelector("canvas");
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
+    const passcodeBlock = escapedPasscode
+      ? `<div class="passcode">
+  <div class="passcode-label">Passcode</div>
+  <div class="passcode-value">${escapedPasscode}</div>
+</div>`
+      : "";
     const w = window.open("", "_blank");
     if (!w) return;
     w.document
@@ -145,6 +165,9 @@ function ShareSection({
   .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 1.5rem; }
   .qr { margin: 0 auto 1.5rem; }
   .qr img { width: 220px; height: 220px; }
+  .passcode { margin-top: 0.75rem; }
+  .passcode-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .passcode-value { margin-top: 0.25rem; font-size: 1.1rem; font-weight: 600; color: #2d2d2d; letter-spacing: 0.06em; }
   .url { font-size: 0.8rem; color: #aaa; word-break: break-all; margin-top: 0.5rem; }
   .brand { font-family: 'Playfair Display', serif; font-size: 0.75rem; color: #b76e79; margin-top: 1.5rem; letter-spacing: 0.05em; }
   @media print { body { background: #fff; } .card { border: 1px solid #ddd; box-shadow: none; } }
@@ -153,13 +176,13 @@ function ShareSection({
   <div class="title">${sessionTitle}</div>
   <div class="subtitle">Scan to capture moments with us</div>
   <div class="qr"><img src="${dataUrl}" alt="QR Code" /></div>
-  <div class="url">${guestUrl}</div>
+  ${passcodeBlock}
   <div class="brand">SnapItNow</div>
 </div>
 <script>window.onload=function(){window.print()}<\/script>
 </body></html>`);
     w.document.close();
-  }, [guestUrl, sessionTitle]);
+  }, [escapedPasscode, sessionTitle]);
 
   return (
     <Card className="motion-safe-fade-up">
@@ -802,7 +825,11 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="flex flex-col gap-4">
-        <ShareSection sessionId={sessionId} sessionTitle={session.title} />
+        <ShareSection
+          sessionId={sessionId}
+          sessionTitle={session.title}
+          sessionPasscode={session.password_hash}
+        />
 
         <ConfigSummary
           rollPreset={session.roll_preset}

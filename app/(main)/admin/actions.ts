@@ -5,10 +5,16 @@ import { requireAdmin } from "@/lib/auth/admin"
 import { listAdminSessions } from "@/lib/db/queries/admin-sessions"
 import { listAdminPayments } from "@/lib/db/queries/admin-payments"
 import { listAdminAuditEvents } from "@/lib/db/queries/admin-audit"
+import { listAdminDiscounts } from "@/lib/db/queries/admin-discounts"
 import {
   forceExpireSessionByAdmin,
   forceReactivateSessionByAdmin,
 } from "@/lib/db/mutations/sessions"
+import {
+  createDiscount,
+  deleteDiscount,
+  updateDiscount,
+} from "@/lib/db/mutations/discounts"
 import { getSessionById } from "@/lib/db/queries/sessions"
 import {
   auditSessionExpiredAdminForce,
@@ -39,6 +45,42 @@ const adminAuditFilterSchema = z.object({
   limit: z.number().int().min(1).max(300).optional(),
 })
 
+const rollPresetSchema = z.union([z.literal(8), z.literal(12), z.literal(24), z.literal(36)])
+
+const adminDiscountFilterSchema = z.object({
+  rollPreset: rollPresetSchema.optional(),
+  active: z.enum(["all", "active", "inactive"]).optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+})
+
+const adminCreateDiscountSchema = z.object({
+  rollPreset: rollPresetSchema,
+  discountPercent: z.number().int().min(0).max(100),
+  label: z.string().max(120).optional(),
+  active: z.boolean(),
+})
+
+const adminUpdateDiscountSchema = z
+  .object({
+    id: z.string().uuid(),
+    rollPreset: rollPresetSchema.optional(),
+    discountPercent: z.number().int().min(0).max(100).optional(),
+    label: z.string().max(120).nullable().optional(),
+    active: z.boolean().optional(),
+  })
+  .refine(
+    (input) =>
+      input.rollPreset !== undefined ||
+      input.discountPercent !== undefined ||
+      input.label !== undefined ||
+      input.active !== undefined,
+    { message: "At least one discount field must be updated." }
+  )
+
+const adminDeleteDiscountSchema = z.object({
+  id: z.string().uuid(),
+})
+
 const adminSessionMutationSchema = z.object({
   sessionId: z.string().uuid(),
   reason: z.string().min(1).max(200),
@@ -66,6 +108,55 @@ export async function fetchAdminAuditEvents(
   await requireAdmin()
   const filters = adminAuditFilterSchema.parse(input)
   return listAdminAuditEvents(filters)
+}
+
+export async function fetchAdminDiscounts(
+  input: z.infer<typeof adminDiscountFilterSchema> = {}
+) {
+  await requireAdmin()
+  const filters = adminDiscountFilterSchema.parse(input)
+  return listAdminDiscounts(filters)
+}
+
+export async function adminCreateDiscount(
+  input: z.infer<typeof adminCreateDiscountSchema>
+) {
+  await requireAdmin()
+  const parsed = adminCreateDiscountSchema.parse(input)
+  return createDiscount({
+    rollPreset: parsed.rollPreset,
+    discountPercent: parsed.discountPercent,
+    label: parsed.label?.trim() ? parsed.label.trim() : null,
+    active: parsed.active,
+  })
+}
+
+export async function adminUpdateDiscount(
+  input: z.infer<typeof adminUpdateDiscountSchema>
+) {
+  await requireAdmin()
+  const parsed = adminUpdateDiscountSchema.parse(input)
+  return updateDiscount({
+    id: parsed.id,
+    rollPreset: parsed.rollPreset,
+    discountPercent: parsed.discountPercent,
+    label:
+      parsed.label === undefined
+        ? undefined
+        : parsed.label?.trim()
+          ? parsed.label.trim()
+          : null,
+    active: parsed.active,
+  })
+}
+
+export async function adminDeleteDiscount(
+  input: z.infer<typeof adminDeleteDiscountSchema>
+) {
+  await requireAdmin()
+  const parsed = adminDeleteDiscountSchema.parse(input)
+  await deleteDiscount(parsed.id)
+  return { success: true as const }
 }
 
 export async function adminForceExpireSession(input: {

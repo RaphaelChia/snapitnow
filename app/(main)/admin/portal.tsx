@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminSessionsPane } from "./components/admin-sessions-pane";
 import { AdminPaymentsPane } from "./components/admin-payments-pane";
 import { AdminAuditPane } from "./components/admin-audit-pane";
+import { AdminDiscountsPane } from "./components/admin-discounts-pane";
 
 export function AdminDashboard() {
   const { data: session } = useSession();
@@ -35,7 +36,7 @@ export function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Admin Portal</h1>
         <p className="text-sm text-muted-foreground">
-          Manage sessions, monitor payments, and review audit trails.
+          Manage sessions, monitor payments, control discounts, and review audit trails.
         </p>
       </div>
 
@@ -46,6 +47,9 @@ export function AdminDashboard() {
           </TabsTrigger>
           <TabsTrigger value="payments" className="px-3">
             Payments
+          </TabsTrigger>
+          <TabsTrigger value="discounts" className="px-3">
+            Discounts
           </TabsTrigger>
           <TabsTrigger value="audit" className="px-3">
             Audit
@@ -58,6 +62,10 @@ export function AdminDashboard() {
 
         <TabsContent value="payments">
           <AdminPaymentsPane />
+        </TabsContent>
+
+        <TabsContent value="discounts">
+          <AdminDiscountsPane />
         </TabsContent>
 
         <TabsContent value="audit">
