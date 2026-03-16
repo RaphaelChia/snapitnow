@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Heart, LogOut } from "lucide-react";
+import { Heart, LogOut, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useState } from "react";
@@ -59,6 +59,8 @@ function BrandMark() {
 export function MainNavbar() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
+  const referralQuery = useMyReferralOverview(!!session?.user);
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border/80 bg-background/90 backdrop-blur-md">
