@@ -16,6 +16,14 @@ import {
 } from "@/components/ui/dialog";
 import { useMyReferralOverview } from "@/hooks/use-referrals";
 import { ReferralShareCard } from "@/components/referral-share-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function UserAvatar({
   src,
@@ -82,7 +90,11 @@ export function MainNavbar() {
                 onOpenChange={setReferralDialogOpen}
               >
                 <DialogTrigger asChild>
-                  <Button size="sm" variant={'link'} className="gap-1.5 p-0 h-fit">
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="hidden h-fit gap-1.5 p-0 sm:inline-flex"
+                  >
                     <Megaphone className="size-3.5" />
                     Refer & save 15%
                   </Button>
@@ -91,7 +103,7 @@ export function MainNavbar() {
                   <DialogHeader>
                     <DialogTitle>Share your referral code</DialogTitle>
                     <DialogDescription>
-                      Keep this handy and remind other couples often.
+                      Share this with another couple, and they can enjoy 15% off their first order.
                     </DialogDescription>
                   </DialogHeader>
                   {referralQuery.data?.code ? (
@@ -104,22 +116,63 @@ export function MainNavbar() {
                 </DialogContent>
               </Dialog>
               {session.user.isAdmin && (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
                   <Link href="/admin">Admin</Link>
                 </Button>
               )}
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {session.user.name}
-              </span>
-              <UserAvatar src={session.user.image} name={session.user.name} />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                aria-label="Sign out"
-              >
-                <LogOut className="size-4" />
-              </Button>
+              <div className="hidden sm:flex sm:flex-col sm:items-end sm:leading-tight">
+                <span className="text-sm text-foreground">{session.user.name ?? "Account"}</span>
+                {session.user.email ? (
+                  <span className="text-xs text-muted-foreground">{session.user.email}</span>
+                ) : null}
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-auto rounded-full p-0 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Open account menu"
+                  >
+                    <UserAvatar src={session.user.image} name={session.user.name} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <div className="sm:hidden">
+                    <DropdownMenuLabel className="flex flex-col gap-0.5">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {session.user.name ?? "Account"}
+                      </span>
+                      {session.user.email ? (
+                        <span className="truncate text-xs font-normal text-muted-foreground">
+                          {session.user.email}
+                        </span>
+                      ) : null}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => setReferralDialogOpen(true)}
+                      className="gap-2"
+                    >
+                      <Megaphone className="size-4" />
+                      Refer & save 15%
+                    </DropdownMenuItem>
+                    {session.user.isAdmin ? (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Admin</Link>
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuSeparator />
+                  </div>
+                  <DropdownMenuItem
+                    onSelect={() => signOut({ callbackUrl: "/login" })}
+                    className="gap-2"
+                  >
+                    <LogOut className="size-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Button asChild variant="default" size="lg">
