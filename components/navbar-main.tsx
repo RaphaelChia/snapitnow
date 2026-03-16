@@ -6,16 +6,7 @@ import { Heart, LogOut, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { useMyReferralOverview } from "@/hooks/use-referrals";
-import { ReferralShareCard } from "@/components/referral-share-card";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ReferralShareDialog from "./referral-share-dialog";
 
 function UserAvatar({
   src,
@@ -85,36 +77,7 @@ export function MainNavbar() {
             <div className="size-9 animate-pulse rounded-full bg-muted" />
           ) : session?.user ? (
             <>
-              <Dialog
-                open={referralDialogOpen}
-                onOpenChange={setReferralDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="link"
-                    className="hidden h-fit gap-1.5 p-0 sm:inline-flex"
-                  >
-                    <Megaphone className="size-3.5" />
-                    Refer & save 15%
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Share your referral code</DialogTitle>
-                    <DialogDescription>
-                      Share this with another couple, and they can enjoy 15% off their first order.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {referralQuery.data?.code ? (
-                    <ReferralShareCard code={referralQuery.data.code} compact />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Preparing your referral code...
-                    </p>
-                  )}
-                </DialogContent>
-              </Dialog>
+              <ReferralShareDialog triggerClassName="hidden sm:inline-flex" />
               {session.user.isAdmin && (
                 <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
                   <Link href="/admin">Admin</Link>
@@ -151,11 +114,11 @@ export function MainNavbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onSelect={() => setReferralDialogOpen(true)}
+                      asChild
                       className="gap-2"
                     >
-                      <Megaphone className="size-4" />
-                      Refer & save 15%
+
+                      <ReferralShareDialog triggerClassName="px-2" />
                     </DropdownMenuItem>
                     {session.user.isAdmin ? (
                       <DropdownMenuItem asChild>
