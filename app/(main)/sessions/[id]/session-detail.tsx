@@ -8,6 +8,7 @@ import {
   useEndSession,
   useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
+import { useMyReferralOverview } from "@/hooks/use-referrals";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
@@ -49,6 +50,7 @@ import { useCallback, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
 import { PhotoSlideshow } from "@/components/photo-slideshow";
+import { ReferralShareCard } from "@/components/referral-share-card";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -711,6 +713,7 @@ function ConfirmActivationDialog({
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading, error } = useSession(sessionId);
+  const referralQuery = useMyReferralOverview();
   const activateDevMutation = useActivateSessionDev();
   const endSessionMutation = useEndSession();
   const updateWeddingDateMutation = useUpdateWeddingDate();
@@ -825,6 +828,10 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="flex flex-col gap-4">
+        {referralQuery.data?.code && (
+          <ReferralShareCard code={referralQuery.data.code} expandable />
+        )}
+
         <ShareSection
           sessionId={sessionId}
           sessionTitle={session.title}

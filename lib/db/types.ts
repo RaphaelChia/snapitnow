@@ -149,6 +149,9 @@ export type Database = {
           image: string | null;
           last_login_at: string;
           name: string;
+          referred_by_host_id: string | null;
+          referred_at: string | null;
+          referral_source_code: string | null;
         };
         Insert: {
           created_at?: string;
@@ -157,6 +160,9 @@ export type Database = {
           image?: string | null;
           last_login_at?: string;
           name: string;
+          referred_by_host_id?: string | null;
+          referred_at?: string | null;
+          referral_source_code?: string | null;
         };
         Update: {
           created_at?: string;
@@ -165,8 +171,49 @@ export type Database = {
           image?: string | null;
           last_login_at?: string;
           name?: string;
+          referred_by_host_id?: string | null;
+          referred_at?: string | null;
+          referral_source_code?: string | null;
         };
         Relationships: [];
+      };
+      referral_codes: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          discount_percent: number;
+          host_id: string;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          code: string;
+          created_at?: string;
+          discount_percent?: number;
+          host_id: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          code?: string;
+          created_at?: string;
+          discount_percent?: number;
+          host_id?: string;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "hosts";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       payments: {
         Row: {
@@ -740,6 +787,7 @@ export const Constants = {
 export type Host = Tables<"hosts">;
 export type Photo = Tables<"photos">;
 export type Discount = Tables<"discounts">;
+export type ReferralCode = Tables<"referral_codes">;
 export type GuestSession = Tables<"guest_sessions">;
 export type GuestAuthChallenge = Tables<"guest_auth_challenges">;
 export type GuestIdentity = Tables<"guest_identities">;

@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Heart, LogOut } from "lucide-react";
+import { Heart, LogOut, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useMyReferralOverview } from "@/hooks/use-referrals";
+import { ReferralShareCard } from "@/components/referral-share-card";
 
 function UserAvatar({
   src,
@@ -48,6 +59,8 @@ function BrandMark() {
 export function MainNavbar() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
+  const referralQuery = useMyReferralOverview(!!session?.user);
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border/80 bg-background/90 backdrop-blur-md">
@@ -64,6 +77,32 @@ export function MainNavbar() {
             <div className="size-9 animate-pulse rounded-full bg-muted" />
           ) : session?.user ? (
             <>
+              <Dialog
+                open={referralDialogOpen}
+                onOpenChange={setReferralDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button size="sm" variant={'link'} className="gap-1.5 p-0 h-fit">
+                    <Megaphone className="size-3.5" />
+                    Refer & save 15%
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Share your referral code</DialogTitle>
+                    <DialogDescription>
+                      Keep this handy and remind other couples often.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {referralQuery.data?.code ? (
+                    <ReferralShareCard code={referralQuery.data.code} compact />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Preparing your referral code...
+                    </p>
+                  )}
+                </DialogContent>
+              </Dialog>
               {session.user.isAdmin && (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/admin">Admin</Link>

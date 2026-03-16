@@ -1,5 +1,6 @@
 import "server-only"
 import { createServerClient } from "@/lib/db"
+import { getReferralDiscountPercentForHost } from "@/lib/db/queries/referrals"
 
 export type ActivationPricing = {
   baseCents: number
@@ -18,21 +19,34 @@ const BASE_PRICES: Record<number, number> = {
 
 export async function getActivationPricing(
   rollPreset: number,
+  hostId?: string
 ): Promise<ActivationPricing> {
   const baseCents = BASE_PRICES[rollPreset]
   if (!baseCents) {
     throw new Error(`Unsupported roll preset for pricing: ${rollPreset}`)
   }
 
-  const db = createServerClient()
-  const { data } = await db
-    .from("discounts")
-    .select("discount_percent, label")
-    .eq("roll_preset", rollPreset)
-    .eq("active", true)
-    .single()
+  const referralDiscountPercent = hostId
+    ? await getReferralDiscountPercentForHost(hostId)
+    : 0
 
-  const discountPercent = data?.discount_percent ?? 0
+  let discountPercent = referralDiscountPercent
+  let discountLabel: string | null =
+    referralDiscountPercent > 0 ? `Referral ${referralDiscountPercent}% off` : null
+
+  if (referralDiscountPercent === 0) {
+    const db = createServerClient()
+    const { data } = await db
+      .from("discounts")
+      .select("discount_percent, label")
+      .eq("roll_preset", rollPreset)
+      .eq("active", true)
+      .maybeSingle()
+
+    discountPercent = data?.discount_percent ?? 0
+    discountLabel = data?.label ?? null
+  }
+
   const discountCents = Math.round(baseCents * (discountPercent / 100))
   const finalCents = Math.max(0, baseCents - discountCents)
 
@@ -40,7 +54,7 @@ export async function getActivationPricing(
     baseCents,
     discountCents,
     finalCents,
-    discountLabel: data?.label ?? null,
+    discountLabel,
     currency: "sgd",
   }
 }

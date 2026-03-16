@@ -266,7 +266,7 @@ export async function createActivationCheckout(
     session = await updateSessionRollPreset(session.id, userId, parsedPreset);
   }
 
-  const pricing = await getActivationPricing(session.roll_preset);
+  const pricing = await getActivationPricing(session.roll_preset, userId);
   const expectedCheckoutIntent = buildActivationCheckoutIntent(
     session.roll_preset,
     pricing
@@ -393,8 +393,8 @@ export async function createActivationCheckout(
 export async function fetchActivationPricing(
   rollPreset: number
 ): Promise<ActivationPricing> {
-  await getAuthenticatedUserId();
-  return getActivationPricing(rollPreset);
+  const userId = await getAuthenticatedUserId();
+  return getActivationPricing(rollPreset, userId);
 }
 
 export async function updateRollPreset(
