@@ -5,7 +5,7 @@ import { createPhotoRecord, markPhotoUploaded, markPhotoFailed } from "@/lib/db/
 import { getStorageService, BUCKET } from "@/lib/storage"
 import { createServerClient } from "@/lib/db"
 import { processPhoto } from "@/lib/filters/process-photo"
-import type { Database, GuestSession } from "@/lib/db/types"
+import type { GuestSession } from "@/lib/db/types"
 import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
 const uploadSchema = z.object({
@@ -96,16 +96,6 @@ export async function POST(req: NextRequest) {
 
       await markPhotoUploaded(photo.id)
 
-      const guestSessionUpdate: Database["public"]["Tables"]["guest_sessions"]["Update"] = {
-        shots_taken: guestSession.shots_taken + 1,
-        shots_remaining: guestSession.shots_remaining - 1,
-        updated_at: new Date().toISOString(),
-      }
-      await db
-        .from("guest_sessions")
-        .update(guestSessionUpdate)
-        .eq("id", guestSession.id)
-
       after(async () => {
         await processPhoto(photo.id, photo.object_key, filterUsed ?? "none")
       })
@@ -116,16 +106,30 @@ export async function POST(req: NextRequest) {
       })
     } catch (uploadError) {
       if (photoId) {
-        await markPhotoFailed(photoId)
+        try {
+          await markPhotoFailed(photoId)
+        } catch (markFailedError) {
+          console.error("Failed to mark photo as failed after upload error", {
+            photoId,
+            markFailedError,
+          })
+        }
       }
       if (reservedShot) {
-        const { error: releaseError } = await db.rpc("release_guest_shot", {
-          p_guest_session_id: guestSession.id,
-        })
-        if (releaseError) {
-          console.error("Failed to release reserved shot after upload failure", {
+        try {
+          const { error: releaseError } = await db.rpc("release_guest_shot", {
+            p_guest_session_id: guestSession.id,
+          })
+          if (releaseError) {
+            console.error("Failed to release reserved shot after upload failure", {
+              guestSessionId: guestSession.id,
+              releaseError,
+            })
+          }
+        } catch (releaseException) {
+          console.error("Unexpected error releasing reserved shot after upload failure", {
             guestSessionId: guestSession.id,
-            releaseError,
+            releaseException,
           })
         }
       }

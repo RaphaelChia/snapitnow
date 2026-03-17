@@ -470,6 +470,7 @@ export type Database = {
           event_type: string;
           id: string;
           lease_expires_at: string | null;
+          processing_token: string | null;
           processing_started_at: string | null;
           processed_at: string | null;
           received_at: string;
@@ -482,6 +483,7 @@ export type Database = {
           event_type: string;
           id?: string;
           lease_expires_at?: string | null;
+          processing_token?: string | null;
           processing_started_at?: string | null;
           processed_at?: string | null;
           received_at?: string;
@@ -494,6 +496,7 @@ export type Database = {
           event_type?: string;
           id?: string;
           lease_expires_at?: string | null;
+          processing_token?: string | null;
           processing_started_at?: string | null;
           processed_at?: string | null;
           received_at?: string;

@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
 
   let eventId: string | null = null
   let eventType: string | null = null
+  let processingToken: string | null = null
   let processingStage = "signature_verification"
 
   try {
@@ -51,15 +52,13 @@ export async function POST(req: NextRequest) {
     eventType = event.type
 
     const claimResult = await claimStripeWebhookEvent(event.id, event.type)
-    if (claimResult === "duplicate_processed") {
-      return NextResponse.json({ ok: true, duplicate: true, state: claimResult })
+    if (claimResult.status === "duplicate_processed") {
+      return NextResponse.json({ ok: true, duplicate: true, state: claimResult.status })
     }
-    if (claimResult === "already_processing") {
-      return NextResponse.json(
-        { error: "Webhook event is currently being processed" },
-        { status: 409 },
-      )
+    if (claimResult.status === "already_processing") {
+      return NextResponse.json({ ok: true, duplicate: true, state: claimResult.status })
     }
+    processingToken = claimResult.processingToken
 
     const rawEventSnapshot = buildRawSnapshot(event)
     processingStage = "event_dispatch"
@@ -162,7 +161,10 @@ export async function POST(req: NextRequest) {
     }
 
     processingStage = "finalize_processed"
-    await finalizeStripeWebhookEvent(event.id, "processed")
+    const finalized = await finalizeStripeWebhookEvent(event.id, processingToken, "processed")
+    if (!finalized) {
+      return NextResponse.json({ ok: true, duplicate: true, state: "stale_claim" })
+    }
     return NextResponse.json({ ok: true })
   } catch (error) {
     const normalizedError = normalizeWebhookError(error)
@@ -172,10 +174,11 @@ export async function POST(req: NextRequest) {
       processingStage,
       error: normalizedError,
     })
-    if (eventId) {
+    if (eventId && processingToken) {
       try {
         await finalizeStripeWebhookEvent(
           eventId,
+          processingToken,
           "failed",
           `[${processingStage}] ${normalizedError}`,
         )

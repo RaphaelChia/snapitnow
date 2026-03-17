@@ -1,4 +1,5 @@
 import "server-only"
+import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import { createServerClient } from "../index"
 import type { Database, Json } from "../types"
@@ -99,9 +100,9 @@ export type PendingPaymentForReconcile = {
 }
 
 type ClaimStripeWebhookEventResult =
-  | "claimed"
-  | "duplicate_processed"
-  | "already_processing"
+  | { status: "claimed"; processingToken: string }
+  | { status: "duplicate_processed" }
+  | { status: "already_processing" }
 
 function buildStripeWebhookLease(now: Date): {
   processingStartedAt: string
@@ -124,17 +125,19 @@ export async function claimStripeWebhookEvent(
   const db = createServerClient()
   const now = new Date()
   const lease = buildStripeWebhookLease(now)
+  const processingToken = randomUUID()
   const webhookEventInsert: Database["public"]["Tables"]["stripe_webhook_events"]["Insert"] = {
     stripe_event_id: stripeEventId,
     event_type: eventType,
     status: STRIPE_WEBHOOK_STATUS_PROCESSING,
     processing_started_at: lease.processingStartedAt,
     lease_expires_at: lease.leaseExpiresAt,
+    processing_token: processingToken,
     attempt_count: 1,
   }
 
   const { error } = await db.from("stripe_webhook_events").insert(webhookEventInsert)
-  if (!error) return "claimed"
+  if (!error) return { status: "claimed", processingToken }
 
   if (error.code !== "23505") throw error
 
@@ -145,18 +148,20 @@ export async function claimStripeWebhookEvent(
     .maybeSingle()
 
   if (existingError) throw existingError
-  if (!existing) return "already_processing"
-  if (existing.status === "processed") return "duplicate_processed"
+  if (!existing) return { status: "already_processing" }
+  if (existing.status === "processed") return { status: "duplicate_processed" }
 
   if (existing.status === STRIPE_WEBHOOK_STATUS_PROCESSING) {
     if (!leaseExpired(existing.lease_expires_at, now)) {
-      return "already_processing"
+      return { status: "already_processing" }
     }
 
+    const reclaimedProcessingToken = randomUUID()
     const staleProcessingUpdate: Database["public"]["Tables"]["stripe_webhook_events"]["Update"] = {
       status: STRIPE_WEBHOOK_STATUS_PROCESSING,
       processing_started_at: lease.processingStartedAt,
       lease_expires_at: lease.leaseExpiresAt,
+      processing_token: reclaimedProcessingToken,
       processed_at: null,
       error_message: null,
       attempt_count: (existing.attempt_count ?? 0) + 1,
@@ -168,11 +173,17 @@ export async function claimStripeWebhookEvent(
       .eq("stripe_event_id", stripeEventId)
       .eq("status", STRIPE_WEBHOOK_STATUS_PROCESSING)
       .lte("lease_expires_at", now.toISOString())
-      .select("stripe_event_id")
+      .select("stripe_event_id, processing_token")
       .maybeSingle()
 
     if (reclaimExpiredError) throw reclaimExpiredError
-    if (reclaimedExpiredLease) return "claimed"
+    if (reclaimedExpiredLease) {
+      return {
+        status: "claimed",
+        processingToken:
+          reclaimedExpiredLease.processing_token ?? reclaimedProcessingToken,
+      }
+    }
 
     const { data: reclaimedMissingLease, error: reclaimMissingError } = await db
       .from("stripe_webhook_events")
@@ -180,33 +191,44 @@ export async function claimStripeWebhookEvent(
       .eq("stripe_event_id", stripeEventId)
       .eq("status", STRIPE_WEBHOOK_STATUS_PROCESSING)
       .is("lease_expires_at", null)
-      .select("stripe_event_id")
+      .select("stripe_event_id, processing_token")
       .maybeSingle()
 
     if (reclaimMissingError) throw reclaimMissingError
-    if (reclaimedMissingLease) return "claimed"
-    return "already_processing"
+    if (reclaimedMissingLease) {
+      return {
+        status: "claimed",
+        processingToken:
+          reclaimedMissingLease.processing_token ?? reclaimedProcessingToken,
+      }
+    }
+    return { status: "already_processing" }
   }
 
+  const claimedExistingProcessingToken = randomUUID()
   const { data: claimedExisting, error: claimExistingError } = await db
     .from("stripe_webhook_events")
     .update({
       status: STRIPE_WEBHOOK_STATUS_PROCESSING,
       processing_started_at: lease.processingStartedAt,
       lease_expires_at: lease.leaseExpiresAt,
+      processing_token: claimedExistingProcessingToken,
       processed_at: null,
       error_message: null,
       attempt_count: (existing.attempt_count ?? 0) + 1,
     })
     .eq("stripe_event_id", stripeEventId)
     .in("status", ["failed", "ignored"])
-    .select("stripe_event_id")
+    .select("stripe_event_id, processing_token")
     .maybeSingle()
 
   if (claimExistingError) throw claimExistingError
-  if (!claimedExisting) return "already_processing"
+  if (!claimedExisting) return { status: "already_processing" }
 
-  return "claimed"
+  return {
+    status: "claimed",
+    processingToken: claimedExisting.processing_token ?? claimedExistingProcessingToken,
+  }
 }
 
 export async function createPendingActivationPayment(
@@ -292,9 +314,10 @@ export async function expirePendingPaymentById(paymentId: string): Promise<void>
 
 export async function finalizeStripeWebhookEvent(
   stripeEventId: string,
+  processingToken: string,
   status: StripeEventStatus,
   errorMessage?: string,
-): Promise<void> {
+): Promise<boolean> {
   const db = createServerClient()
   const webhookEventUpdate: Database["public"]["Tables"]["stripe_webhook_events"]["Update"] = {
     status,
@@ -302,14 +325,20 @@ export async function finalizeStripeWebhookEvent(
     error_message: errorMessage ?? null,
     processing_started_at: null,
     lease_expires_at: null,
+    processing_token: null,
   }
 
-  const { error } = await db
+  const { data, error } = await db
     .from("stripe_webhook_events")
     .update(webhookEventUpdate)
     .eq("stripe_event_id", stripeEventId)
+    .eq("status", STRIPE_WEBHOOK_STATUS_PROCESSING)
+    .eq("processing_token", processingToken)
+    .select("stripe_event_id")
+    .maybeSingle()
 
   if (error) throw error
+  return !!data
 }
 
 export async function processCheckoutSessionCompleted(
