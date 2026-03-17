@@ -4,6 +4,16 @@ import { Dashboard } from "./dashboard"
 import { Landing } from "./landing"
 import { listHostSessions } from "@/lib/db/queries/sessions"
 import { cookies } from "next/headers"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Wedding Disposable Camera Experience",
+  description:
+    "SnapItNow gives your guests a disposable-camera style wedding experience with instant shared gallery moments. Let your guests contribute to this special day.",
+  alternates: {
+    canonical: "/",
+  },
+}
 
 export default async function HomePage() {
   const session = await auth()
