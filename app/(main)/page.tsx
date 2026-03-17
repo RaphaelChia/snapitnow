@@ -9,7 +9,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Wedding Disposable Camera Experience",
   description:
-    "Create a disposable-camera style wedding session, share one link, and collect candid guest photos in a single gallery.",
+    "SnapItNow gives your guests a disposable-camera style wedding experience with instant shared gallery moments. Let your guests contribute to this special day.",
   alternates: {
     canonical: "/",
   },
