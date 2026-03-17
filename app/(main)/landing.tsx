@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Heart, Camera, Users, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { absoluteUrl } from "@/lib/seo"
 
 function FeatureItem({
   icon: Icon,
@@ -25,8 +26,21 @@ function FeatureItem({
 }
 
 export function Landing() {
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "SnapItNow",
+    url: absoluteUrl("/"),
+    description:
+      "A disposable-camera style wedding photo experience where guests scan, capture, and share moments instantly.",
+  }
+
   return (
     <main className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-romance-secondary/40 via-background to-background" />
       <div className="pointer-events-none absolute right-[-10%] top-[-15%] size-[500px] rounded-full bg-romance-primary/5 blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-20%] left-[-10%] size-[400px] rounded-full bg-romance-accent/20 blur-3xl" />

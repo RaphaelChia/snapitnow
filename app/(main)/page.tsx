@@ -4,6 +4,16 @@ import { Dashboard } from "./dashboard"
 import { Landing } from "./landing"
 import { listHostSessions } from "@/lib/db/queries/sessions"
 import { cookies } from "next/headers"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Wedding Disposable Camera Experience",
+  description:
+    "Create a disposable-camera style wedding session, share one link, and collect candid guest photos in a single gallery.",
+  alternates: {
+    canonical: "/",
+  },
+}
 
 export default async function HomePage() {
   const session = await auth()
