@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, forwardRef, useImperativeHandle } from "react"
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import Image from "next/image"
 import { FILTER_CSS } from "@/lib/filters/css"
 import type { FilterId } from "@/lib/filters/presets"
@@ -11,6 +11,7 @@ export interface CameraViewfinderHandle {
 
 interface CameraViewfinderProps {
   activeFilterId: FilterId
+  facingMode: "user" | "environment"
   frozenPreviewUrl?: string | null
   isFrozen?: boolean
   onStreamReady?: () => void
@@ -21,30 +22,69 @@ export const CameraViewfinder = forwardRef<
   CameraViewfinderHandle,
   CameraViewfinderProps
 >(function CameraViewfinder(
-  { activeFilterId, frozenPreviewUrl, isFrozen = false, onStreamReady, onStreamError },
+  { activeFilterId, facingMode, frozenPreviewUrl, isFrozen = false, onStreamReady, onStreamError },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const [activeFacingMode, setActiveFacingMode] = useState<"user" | "environment">(
+    facingMode,
+  )
 
   useEffect(() => {
     let cancelled = false
 
     async function startCamera() {
+      let lastError: unknown = null
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+        const streamAttempts: MediaStreamConstraints[] = [
+          {
+            video: {
+              facingMode: { exact: facingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
           },
-          audio: false,
-        })
+          {
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          },
+          {
+            video: {
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          },
+        ]
+
+        let stream: MediaStream | null = null
+        for (const constraints of streamAttempts) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints)
+            break
+          } catch (err) {
+            lastError = err
+          }
+        }
+
+        if (!stream) {
+          throw lastError ?? new Error("Camera access denied")
+        }
 
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop())
           return
         }
+
+        const [videoTrack] = stream.getVideoTracks()
+        const trackFacing = videoTrack?.getSettings().facingMode
+        setActiveFacingMode(trackFacing === "user" ? "user" : facingMode)
 
         streamRef.current = stream
         if (videoRef.current) {
@@ -67,7 +107,7 @@ export const CameraViewfinder = forwardRef<
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
     }
-  }, [onStreamReady, onStreamError])
+  }, [facingMode, onStreamReady, onStreamError])
 
   useImperativeHandle(ref, () => ({
     async captureFrame(): Promise<Blob | null> {
@@ -80,15 +120,17 @@ export const CameraViewfinder = forwardRef<
       const ctx = canvas.getContext("2d")
       if (!ctx) return null
 
+      // Keep the captured file normalized; mirror only in preview UI.
       ctx.drawImage(video, 0, 0)
 
       return new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
       })
     },
-  }))
+  }), [])
 
   const cssFilter = FILTER_CSS[activeFilterId]
+  const shouldMirror = activeFacingMode === "user"
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
@@ -97,9 +139,9 @@ export const CameraViewfinder = forwardRef<
         autoPlay
         playsInline
         muted
-        style={{ filter: cssFilter }}
+        style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
         className="h-full w-full object-cover"
-        onPause={(e) => { e.currentTarget.play().catch(() => {}) }}
+        onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
       />
       {isFrozen && frozenPreviewUrl && (
@@ -110,7 +152,7 @@ export const CameraViewfinder = forwardRef<
           unoptimized
           sizes="100vw"
           className="absolute inset-0 object-cover"
-          style={{ filter: cssFilter }}
+          style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
         />
       )}
     </div>

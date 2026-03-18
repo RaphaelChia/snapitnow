@@ -5,9 +5,10 @@ import { Gift, Copy, Check, Send } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useMyReferralOverview } from "@/hooks/use-referrals"
 
 type ReferralShareCardProps = {
-  code: string
+
   discountPercent?: number
   className?: string
   compact?: boolean
@@ -16,7 +17,7 @@ type ReferralShareCardProps = {
 }
 
 export function ReferralShareCard({
-  code,
+
   discountPercent = 15,
   className,
   compact = false,
@@ -29,6 +30,9 @@ export function ReferralShareCard({
   const [isExpanded, setIsExpanded] = useState(
     expandable ? defaultExpanded : true
   )
+  const referralQuery = useMyReferralOverview();
+  const code = referralQuery.data?.code;
+
 
   const referralLink = useMemo(() => {
     if (typeof window === "undefined") return `/r/${code}`
@@ -36,6 +40,7 @@ export function ReferralShareCard({
   }, [code])
 
   const handleCopyCode = useCallback(async () => {
+    if (!code) return;
     await navigator.clipboard.writeText(code)
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 1800)
@@ -62,6 +67,11 @@ export function ReferralShareCard({
     setTimeout(() => setShared(false), 1800)
   }, [discountPercent, handleCopyLink, referralLink])
 
+  if (referralQuery.isLoading)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Preparing your referral code...
+      </p>)
   return (
     <Card
       className={cn(

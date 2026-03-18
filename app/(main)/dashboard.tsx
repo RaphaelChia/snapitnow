@@ -1,21 +1,19 @@
 "use client";
 
-import { useHostSessionsWithInitial, useDeleteSession } from "@/hooks/use-sessions";
-import { Camera, Plus, Trash2, Users, Film, ChevronRight } from "lucide-react";
+import { useHostSessionsWithInitial } from "@/hooks/use-sessions";
+import { Camera, Plus, Users, Film, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateSessionDialog } from "./create-session-dialog";
 import { useState } from "react";
 import Link from "next/link";
 import type { Session } from "@/lib/db/types";
-import { useMyReferralOverview } from "@/hooks/use-referrals";
 import { ReferralShareCard } from "@/components/referral-share-card";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
@@ -31,8 +29,6 @@ const statusLabel: Record<string, string> = {
 };
 
 function SessionCard({ session }: { session: Session }) {
-  const deleteMutation = useDeleteSession();
-
   return (
     <Link href={`/sessions/${session.id}`} className="block">
       <Card className="motion-safe-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
@@ -64,20 +60,6 @@ function SessionCard({ session }: { session: Session }) {
             </span>
           </div>
         </CardContent>
-        <CardFooter className="justify-end gap-2">
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={deleteMutation.isPending || session.status === "active"}
-            onClick={(e) => {
-              e.preventDefault();
-              deleteMutation.mutate(session.id);
-            }}
-          >
-            <Trash2 className="size-3" />
-            Delete
-          </Button>
-        </CardFooter>
       </Card>
     </Link>
   );
@@ -109,7 +91,6 @@ export function Dashboard({
   initialSessions?: Session[];
 }) {
   const { data: sessions, isLoading, error } = useHostSessionsWithInitial(initialSessions);
-  const referralQuery = useMyReferralOverview();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
@@ -128,11 +109,7 @@ export function Dashboard({
         )}
       </div>
 
-      {referralQuery.data?.code && (
-        <div className="mb-4">
-          <ReferralShareCard code={referralQuery.data.code} expandable />
-        </div>
-      )}
+
 
       {isLoading && (
         <div className="flex flex-col gap-3">
@@ -153,7 +130,7 @@ export function Dashboard({
       )}
 
       {sessions && sessions.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
           {sessions.map((s, index) => (
             <div
               key={s.id}
@@ -165,6 +142,9 @@ export function Dashboard({
           ))}
         </div>
       )}
+      <div className="mt-4">
+        <ReferralShareCard expandable />
+      </div>
 
       <CreateSessionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </main>

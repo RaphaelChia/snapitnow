@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn } from "next-auth/react"
-import { Heart } from "lucide-react"
+import { Heart, LockIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -36,22 +36,23 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export function LoginCard() {
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="items-center text-center">
-        <div className="mb-3 flex size-14 items-center justify-center rounded-xl bg-primary shadow-romance">
-          <Heart className="size-7 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
+    <Card className="w-full max-w-sm max-md:border-0 max-md:bg-transparent max-md:shadow-none! max-md:h-dvh">
+      <CardHeader className="items-center text-center max-md:fixed max-md:w-full max-md:left-0 max-md:top-[45%]">
+        <div className="flex items-center justify-center gap-2 font-bold">
+          <div className="flex size-7 items-center justify-center rounded-xl bg-romance-primary shadow-romance">
+            <Heart className="size-4 fill-primary-foreground text-primary-foreground" strokeWidth={2} />
+          </div>
+          <div className="font-display text-xl">SnapItNow</div>
         </div>
-        <CardTitle className="font-display text-xl">SnapItNow</CardTitle>
-        <CardDescription>
-          Sign in to create beautiful wedding memories with your guests.
+        <CardDescription className="font-semibold max-md:mx-4">
+          Start a session, share your QR code, and let your guests capture moments from their POV
         </CardDescription>
       </CardHeader>
-
-      <CardContent className="flex flex-col gap-5">
+      <CardContent className="flex flex-col gap-2 mt-auto">
         <Button
           variant="outline"
           size="lg"
-          className="h-12 w-full gap-3"
+          className="h-12 w-full gap-3 bg-primary/40 border-0"
           onClick={() =>
             signIn("google", { callbackUrl: "/api/referrals/consume" })
           }
@@ -60,10 +61,8 @@ export function LoginCard() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-sm leading-relaxed text-muted-foreground">
-          We only use Google login for authentication. No personal data is
-          collected, stored, or shared beyond your name and email for account
-          identification.
+        <p className="flex items-start gap-2 px-2 text-sm leading-tight text-muted-foreground">
+          <LockIcon className="size-4 mt-1" /> Your data will not be used or shared with third parties.
         </p>
       </CardContent>
     </Card>
