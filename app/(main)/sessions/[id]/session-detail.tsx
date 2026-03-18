@@ -5,6 +5,7 @@ import {
   useActivateSessionDev,
   useCreateActivationCheckout,
   useActivationPricing,
+  useDeleteSession,
   useEndSession,
   useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
@@ -44,8 +45,10 @@ import {
   Printer,
   Maximize2,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
@@ -715,14 +718,17 @@ function ConfirmActivationDialog({
 }
 
 export function SessionDetail({ sessionId }: { sessionId: string }) {
+  const router = useRouter();
   const { data: session, isLoading, error } = useSession(sessionId);
   const referralQuery = useMyReferralOverview();
   const activateDevMutation = useActivateSessionDev();
   const endSessionMutation = useEndSession();
+  const deleteSessionMutation = useDeleteSession();
   const updateWeddingDateMutation = useUpdateWeddingDate();
   const isDev = process.env.NODE_ENV !== "production";
   const [activationDialogOpen, setActivationDialogOpen] = useState(false);
   const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [weddingDateLocal, setWeddingDateLocal] = useState("");
 
   if (isLoading) {
@@ -879,6 +885,21 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         </div>
       )}
 
+      {session.status !== "active" && (
+        <div className="mt-6">
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-full gap-2"
+            disabled={deleteSessionMutation.isPending}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            Delete memory
+          </Button>
+        </div>
+      )}
+
       <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -905,6 +926,37 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
               }
             >
               {endSessionMutation.isPending ? "Ending..." : "End session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete this memory?</DialogTitle>
+            <DialogDescription>
+              This cannot be undone. All photos and data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteSessionMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteSessionMutation.isPending}
+              onClick={() =>
+                deleteSessionMutation.mutate(sessionId, {
+                  onSuccess: () => router.push("/"),
+                })
+              }
+            >
+              {deleteSessionMutation.isPending ? "Deleting..." : "Delete memory"}
             </Button>
           </DialogFooter>
         </DialogContent>
