@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Source_Sans_3,
+  Playfair_Display,
+  Caveat,
+} from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/seo";
 
@@ -12,6 +18,12 @@ const sourceSans = Source_Sans_3({
 const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
+  display: "swap",
+});
+
+const caveat = Caveat({
+  subsets: ["latin"],
+  variable: "--font-handwriting",
   display: "swap",
 });
 
@@ -74,7 +86,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sourceSans.variable} ${playfair.variable}`}>
+    <html
+      lang="en"
+      className={`${sourceSans.variable} ${playfair.variable} ${caveat.variable}`}
+    >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

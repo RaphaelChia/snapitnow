@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
+  --font-handwriting: var(--font-handwriting);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -241,6 +242,10 @@
     font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
       sans-serif;
   }
+  .font-handwriting {
+    font-family: var(--font-handwriting), "Bradley Hand", "Comic Sans MS",
+      cursive;
+  }
   .motion-safe-float {
     animation: float-soft 5s ease-in-out infinite;
   }
@@ -356,6 +361,10 @@
   .font-display {
     font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
       sans-serif;
+  }
+  .font-handwriting {
+    font-family: var(--font-handwriting), "Bradley Hand", "Comic Sans MS",
+      cursive;
   }
   .motion-safe-float {
     animation: float-soft 5s ease-in-out infinite;

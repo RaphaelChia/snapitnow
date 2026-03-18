@@ -54,20 +54,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           provider: account?.provider,
           providerAccountId: account?.providerAccountId,
         });
-        if (hostId) token.hostId = hostId;
+        if (hostId) {
+          token.hostId = hostId;
+          token.isAdmin = await isHostAdmin(hostId);
+        }
       }
-      if (typeof token.hostId === "string") {
-        token.isAdmin = await isHostAdmin(token.hostId);
-      } else {
-        token.isAdmin = false;
-      }
-
       return token;
     },
     async session({ session, token }) {
       if (typeof token.hostId === "string") {
         session.user.id = token.hostId;
-        session.user.isAdmin = await isHostAdmin(token.hostId);
+        session.user.isAdmin = token.isAdmin ?? false;
       } else {
         session.user.isAdmin = false;
       }

@@ -235,7 +235,7 @@ export function PhotoSlideshow({
         </div>
 
         <div
-          className="relative flex flex-1 items-center justify-center overflow-hidden"
+          className="relative flex flex-1 items-center justify-center overflow-hidden px-3 pb-5 sm:px-10 sm:pb-8"
           onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchStartX === null) return;
@@ -254,29 +254,41 @@ export function PhotoSlideshow({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-2 z-10 text-white/60 hover:bg-white/10 hover:text-white"
+              className="absolute left-1 z-10 text-white/60 hover:bg-white/10 hover:text-white sm:left-4"
               onClick={goPrev}
             >
               <ChevronLeft className="size-6" />
             </Button>
           )}
 
-          <Image
-            src={current.signedUrl}
-            alt={current.caption ?? "Photo"}
-            fill
-            unoptimized
-            sizes="(max-width: 768px) 100vw, 900px"
-            className="object-contain"
-            onLoadingComplete={() => {
-              if (!current.signedUrl) return;
-              markLoaded(current.signedUrl);
-            }}
-          />
+          <div className="relative w-[min(86vw,760px)] rounded-[2px] border border-zinc-200 bg-white p-3 pb-5 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:p-4 sm:pb-8">
+            <div className="relative h-[min(62dvh,62vw)] w-full overflow-hidden bg-zinc-100">
+              <Image
+                src={current.signedUrl}
+                alt={current.caption ?? "Photo"}
+                fill
+                unoptimized
+                sizes="(max-width: 768px) 86vw, 760px"
+                className="object-contain"
+                onLoadingComplete={() => {
+                  if (!current.signedUrl) return;
+                  markLoaded(current.signedUrl);
+                }}
+              />
+            </div>
+
+            <div className="min-h-14 px-2 pt-3 text-center sm:min-h-16 sm:pt-4">
+              {current.caption ? (
+                <p className="font-handwriting text-xl leading-snug text-zinc-700 sm:text-2xl">
+                  {current.caption}
+                </p>
+              ) : null}
+            </div>
+          </div>
 
           {!currentLoaded && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400/40 border-t-zinc-700" />
             </div>
           )}
 
@@ -284,19 +296,13 @@ export function PhotoSlideshow({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 z-10 text-white/60 hover:bg-white/10 hover:text-white"
+              className="absolute right-1 z-10 text-white/60 hover:bg-white/10 hover:text-white sm:right-4"
               onClick={goNext}
             >
               <ChevronRight className="size-6" />
             </Button>
           )}
         </div>
-
-        {current.caption && (
-          <div className="px-4 py-2 text-center text-sm text-white/80">
-            {current.caption}
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
