@@ -120,18 +120,14 @@ export const CameraViewfinder = forwardRef<
       const ctx = canvas.getContext("2d")
       if (!ctx) return null
 
-      if (activeFacingMode === "user") {
-        ctx.translate(canvas.width, 0)
-        ctx.scale(-1, 1)
-      }
-
+      // Keep the captured file normalized; mirror only in preview UI.
       ctx.drawImage(video, 0, 0)
 
       return new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
       })
     },
-  }), [activeFacingMode])
+  }), [])
 
   const cssFilter = FILTER_CSS[activeFilterId]
   const shouldMirror = activeFacingMode === "user"
