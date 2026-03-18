@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, forwardRef, useImperativeHandle } from "react"
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import Image from "next/image"
 import { FILTER_CSS } from "@/lib/filters/css"
 import type { FilterId } from "@/lib/filters/presets"
@@ -27,6 +27,9 @@ export const CameraViewfinder = forwardRef<
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const [activeFacingMode, setActiveFacingMode] = useState<"user" | "environment">(
+    facingMode,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +82,10 @@ export const CameraViewfinder = forwardRef<
           return
         }
 
+        const [videoTrack] = stream.getVideoTracks()
+        const trackFacing = videoTrack?.getSettings().facingMode
+        setActiveFacingMode(trackFacing === "user" ? "user" : facingMode)
+
         streamRef.current = stream
         if (videoRef.current) {
           videoRef.current.srcObject = stream
@@ -113,15 +120,21 @@ export const CameraViewfinder = forwardRef<
       const ctx = canvas.getContext("2d")
       if (!ctx) return null
 
+      if (activeFacingMode === "user") {
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+      }
+
       ctx.drawImage(video, 0, 0)
 
       return new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
       })
     },
-  }))
+  }), [activeFacingMode])
 
   const cssFilter = FILTER_CSS[activeFilterId]
+  const shouldMirror = activeFacingMode === "user"
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
@@ -130,7 +143,7 @@ export const CameraViewfinder = forwardRef<
         autoPlay
         playsInline
         muted
-        style={{ filter: cssFilter }}
+        style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
         className="h-full w-full object-cover"
         onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
@@ -143,7 +156,7 @@ export const CameraViewfinder = forwardRef<
           unoptimized
           sizes="100vw"
           className="absolute inset-0 object-cover"
-          style={{ filter: cssFilter }}
+          style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
         />
       )}
     </div>
