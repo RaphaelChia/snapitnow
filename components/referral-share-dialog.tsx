@@ -12,8 +12,6 @@ interface Props {
 }
 
 export default function ReferralShareDialog({ triggerClassName }: Props) {
-  const { data: session } = useSession();
-  const referralQuery = useMyReferralOverview(!!session?.user);
   const [referralDialogOpen, setReferralDialogOpen] = useState(false);
 
   return (
@@ -36,13 +34,8 @@ export default function ReferralShareDialog({ triggerClassName }: Props) {
           <DialogTitle>Refer a friend</DialogTitle>
 
         </DialogHeader>
-        {referralQuery.data?.code ? (
-          <ReferralShareCard code={referralQuery.data.code} compact />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Preparing your referral code...
-          </p>
-        )}
+        <ReferralShareCard compact />
+
       </DialogContent>
     </Dialog>
   )

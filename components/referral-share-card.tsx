@@ -67,6 +67,11 @@ export function ReferralShareCard({
     setTimeout(() => setShared(false), 1800)
   }, [discountPercent, handleCopyLink, referralLink])
 
+  if (referralQuery.isLoading)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Preparing your referral code...
+      </p>)
   return (
     <Card
       className={cn(

@@ -53,7 +53,6 @@ import { useCallback, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Image from "next/image";
 import { PhotoSlideshow } from "@/components/photo-slideshow";
-import { ReferralShareCard } from "@/components/referral-share-card";
 import {
   parseRollPreset,
   ROLL_PRESET_VALUES,
