@@ -12,6 +12,7 @@ import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 import { Button } from "@/components/ui/button";
+import { ImageIcon, RefreshCwIcon, Youtube } from "lucide-react";
 
 function getExpiredSessionTitle(error: GuestApiError): string | null {
   if (!error.details || typeof error.details !== "object") {
@@ -35,6 +36,7 @@ export default function GuestCameraPage() {
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [caption, setCaption] = useState("");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const cameraInitQuery = useGuestCameraInit(sessionId);
   const session = cameraInitQuery.data?.session ?? null;
   const guestSession = cameraInitQuery.data?.guestSession ?? null;
@@ -55,8 +57,8 @@ export default function GuestCameraPage() {
     session?.filter_mode === "fixed" && session.fixed_filter
       ? (session.fixed_filter as FilterId)
       : session?.filter_mode === "preset" && session.allowed_filters?.length
-      ? (session.allowed_filters[0] as FilterId)
-      : "none";
+        ? (session.allowed_filters[0] as FilterId)
+        : "none";
   const activeFilterId = selectedFilterId ?? defaultFilterId;
 
   useEffect(() => {
@@ -69,6 +71,11 @@ export default function GuestCameraPage() {
     (err: Error) => setRuntimeError(err.message),
     []
   );
+  const handleFlipCamera = useCallback(() => {
+    if (isCapturingOrUploading || pendingBlob) return;
+    setRuntimeError(null);
+    setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
+  }, [isCapturingOrUploading, pendingBlob]);
 
   const handleCapture = useCallback(async () => {
     if (isCapturingOrUploading || pendingBlob) return;
@@ -109,9 +116,9 @@ export default function GuestCameraPage() {
         const body = await res.json().catch(() => ({}));
         const message =
           body &&
-          typeof body === "object" &&
-          "error" in body &&
-          typeof body.error === "string"
+            typeof body === "object" &&
+            "error" in body &&
+            typeof body.error === "string"
             ? body.error
             : "Upload failed";
         throw new Error(message);
@@ -231,6 +238,7 @@ export default function GuestCameraPage() {
       <CameraViewfinder
         ref={cameraRef}
         activeFilterId={activeFilterId}
+        facingMode={facingMode}
         isFrozen={Boolean(frozenPreviewUrl)}
         frozenPreviewUrl={frozenPreviewUrl}
         onStreamError={handleStreamError}
@@ -241,9 +249,8 @@ export default function GuestCameraPage() {
           <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
             {remainingShots <= 0
               ? "All captured"
-              : `${remainingShots} moment${
-                  remainingShots === 1 ? "" : "s"
-                } left`}
+              : `${remainingShots} moment${remainingShots === 1 ? "" : "s"
+              } left`}
           </div>
           {!galleryUnlocked && (
             <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
@@ -273,12 +280,12 @@ export default function GuestCameraPage() {
               {isCapturingOrUploading
                 ? "Saving..."
                 : caption.trim()
-                ? "Submit with caption"
-                : "Submit"}
+                  ? "Submit with caption"
+                  : "Submit"}
             </Button>
           </div>
         ) : (
-          <div className="rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
+          <div className="relative rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
             {showFilterStrip && (
               <FilterStrip
                 allowedFilters={session.allowed_filters as FilterId[]}
@@ -294,13 +301,25 @@ export default function GuestCameraPage() {
               showRemainingLabel={false}
             />
 
-            <div className="flex items-center justify-center pb-4">
+            <div className="absolute top-1/2 -translate-y-1/2 left-4 items-center justify-center rounded-none">
               <Button
                 asChild
-                variant="outline"
-                className="rounded-full border-white/30 bg-black/30 text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white"
+                variant="ghost"
+                className="p-0 aspect-square h-fit bg-transparent rounded-lg  text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white"
               >
-                <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
+                <Link href={`/s/${sessionId}/gallery`}><Youtube className="size-8 text-neutral-400" /></Link>
+              </Button>
+            </div>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 items-center justify-center rounded-none">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFlipCamera}
+                disabled={isCapturingOrUploading}
+                className="p-0 aspect-square h-fit bg-transparent rounded-lg border-white/30 text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                aria-label="Flip camera"
+              >
+                <RefreshCwIcon className="size-8 text-neutral-400" />
               </Button>
             </div>
           </div>

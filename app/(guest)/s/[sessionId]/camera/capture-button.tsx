@@ -33,7 +33,7 @@ export function CaptureButton({
         onClick={handleCapture}
         disabled={disabled}
         className={cn(
-          "flex h-[102px] w-[102px] items-center justify-center rounded-full border-[3px] border-white/85 bg-black/20 shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-all duration-200",
+          "flex h-[82px] w-[82px] items-center justify-center rounded-full border-[3px] border-white/85 bg-black/20 shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-all duration-200",
           disabled
             ? "opacity-55"
             : "active:scale-95 hover:border-primary/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/60",
@@ -42,7 +42,7 @@ export function CaptureButton({
       >
         <div
           className={cn(
-            "h-[82px] w-[82px] rounded-full transition-all duration-200",
+            "h-[62px] w-[62px] rounded-full transition-all duration-200",
             isBusy
               ? "animate-pulse bg-primary/95 scale-[0.98]"
               : "bg-white shadow-inner",

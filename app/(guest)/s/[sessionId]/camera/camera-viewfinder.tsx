@@ -11,6 +11,7 @@ export interface CameraViewfinderHandle {
 
 interface CameraViewfinderProps {
   activeFilterId: FilterId
+  facingMode: "user" | "environment"
   frozenPreviewUrl?: string | null
   isFrozen?: boolean
   onStreamReady?: () => void
@@ -21,7 +22,7 @@ export const CameraViewfinder = forwardRef<
   CameraViewfinderHandle,
   CameraViewfinderProps
 >(function CameraViewfinder(
-  { activeFilterId, frozenPreviewUrl, isFrozen = false, onStreamReady, onStreamError },
+  { activeFilterId, facingMode, frozenPreviewUrl, isFrozen = false, onStreamReady, onStreamError },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -31,15 +32,47 @@ export const CameraViewfinder = forwardRef<
     let cancelled = false
 
     async function startCamera() {
+      let lastError: unknown = null
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+        const streamAttempts: MediaStreamConstraints[] = [
+          {
+            video: {
+              facingMode: { exact: facingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
           },
-          audio: false,
-        })
+          {
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          },
+          {
+            video: {
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          },
+        ]
+
+        let stream: MediaStream | null = null
+        for (const constraints of streamAttempts) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints)
+            break
+          } catch (err) {
+            lastError = err
+          }
+        }
+
+        if (!stream) {
+          throw lastError ?? new Error("Camera access denied")
+        }
 
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop())
@@ -67,7 +100,7 @@ export const CameraViewfinder = forwardRef<
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
     }
-  }, [onStreamReady, onStreamError])
+  }, [facingMode, onStreamReady, onStreamError])
 
   useImperativeHandle(ref, () => ({
     async captureFrame(): Promise<Blob | null> {
@@ -99,7 +132,7 @@ export const CameraViewfinder = forwardRef<
         muted
         style={{ filter: cssFilter }}
         className="h-full w-full object-cover"
-        onPause={(e) => { e.currentTarget.play().catch(() => {}) }}
+        onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
       />
       {isFrozen && frozenPreviewUrl && (
