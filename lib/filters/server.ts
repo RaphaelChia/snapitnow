@@ -7,6 +7,13 @@ type SharpPipeline = (img: Sharp) => Sharp
 export const FILTER_PIPELINES: Record<FilterId, SharpPipeline> = {
   "none": (img) => img,
 
+  "disposable-starter": (img) =>
+    img
+      .modulate({ saturation: 0.94, brightness: 1.04 })
+      .tint({ r: 244, g: 222, b: 186 })
+      .gamma(1.2)
+      .linear(1.08, -(128 * 1.08 - 130)),
+
   "vintage": (img) =>
     img
       .modulate({ saturation: 0.8, brightness: 0.95 })

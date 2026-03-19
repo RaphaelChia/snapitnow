@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { FilterMode } from "@/lib/db/types";
 import {
   FILTER_PRESETS,
   MVP_FILTER_IDS,
@@ -104,25 +103,17 @@ export function CreateSessionDialog({
 
   const [title, setTitle] = useState("");
   const [rollPreset, setRollPreset] = useState<RollPreset>(12);
-  const [filterMode, setFilterMode] = useState<FilterMode>("fixed");
-  const [fixedFilter, setFixedFilter] = useState<FilterId>("vintage");
-  const [allowedFilters, setAllowedFilters] = useState<FilterId[]>([]);
+  const [fixedFilter, setFixedFilter] = useState<FilterId>("disposable-starter");
   const [password, setPassword] = useState("");
   const [weddingDateLocal, setWeddingDateLocal] = useState(
     getBrowserLocalDate()
   );
 
-  function toggleAllowedFilter(id: FilterId) {
-    setAllowedFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
-  }
-
   const canSubmit =
     title.trim() &&
     !createMutation.isPending &&
     weddingDateLocal &&
-    (filterMode === "fixed" ? !!fixedFilter : allowedFilters.length >= 2);
+    !!fixedFilter;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -131,9 +122,9 @@ export function CreateSessionDialog({
       {
         title: title.trim(),
         roll_preset: rollPreset,
-        filter_mode: filterMode,
-        fixed_filter: filterMode === "fixed" ? fixedFilter : null,
-        allowed_filters: filterMode === "preset" ? allowedFilters : null,
+        filter_mode: "fixed",
+        fixed_filter: fixedFilter,
+        allowed_filters: null,
         password: password || null,
         wedding_date_local: weddingDateLocal,
         event_timezone:
@@ -143,9 +134,7 @@ export function CreateSessionDialog({
         onSuccess: () => {
           setTitle("");
           setRollPreset(12);
-          setFilterMode("fixed");
-          setFixedFilter("vintage");
-          setAllowedFilters([]);
+          setFixedFilter("disposable-starter");
           setPassword("");
           setWeddingDateLocal(getBrowserLocalDate());
           onOpenChange(false);
@@ -196,69 +185,24 @@ export function CreateSessionDialog({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Filter mode</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["fixed", "preset"] as const).map((mode) => (
-                <Button
-                  key={mode}
-                  type="button"
-                  variant={filterMode === mode ? "default" : "outline"}
-                  onClick={() => setFilterMode(mode)}
-                  className="rounded-xl"
-                >
-                  {mode === "fixed" ? "One filter for all" : "Guests choose"}
-                </Button>
+          <div className="motion-safe-fade-up flex flex-col gap-2">
+            <Label>Film stock</Label>
+            <p className="text-xs text-muted-foreground">
+              Guests cannot switch filters. Pick one look for the whole memory.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {MVP_PRESETS.map((preset) => (
+                <FilterPreviewCard
+                  key={preset.id}
+                  filterId={preset.id}
+                  name={preset.name}
+                  description={preset.description}
+                  selected={fixedFilter === preset.id}
+                  onSelect={() => setFixedFilter(preset.id)}
+                />
               ))}
             </div>
           </div>
-
-          {filterMode === "fixed" && (
-            <div className="motion-safe-fade-up flex flex-col gap-2">
-              <Label>Choose a filter</Label>
-              <p className="text-xs text-muted-foreground">
-                All guest photos will use this filter.
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {MVP_PRESETS.map((preset) => (
-                  <FilterPreviewCard
-                    key={preset.id}
-                    filterId={preset.id}
-                    name={preset.name}
-                    description={preset.description}
-                    selected={fixedFilter === preset.id}
-                    onSelect={() => setFixedFilter(preset.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {filterMode === "preset" && (
-            <div className="motion-safe-fade-up flex flex-col gap-2">
-              <Label>Choose filters for guests</Label>
-              <p className="text-xs text-muted-foreground">
-                Pick 2-5 filters. Guests choose from these at capture time.
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {MVP_PRESETS.map((preset) => (
-                  <FilterPreviewCard
-                    key={preset.id}
-                    filterId={preset.id}
-                    name={preset.name}
-                    description={preset.description}
-                    selected={allowedFilters.includes(preset.id)}
-                    onSelect={() => toggleAllowedFilter(preset.id)}
-                  />
-                ))}
-              </div>
-              {allowedFilters.length > 0 && allowedFilters.length < 2 && (
-                <p className="text-xs text-destructive">
-                  Select at least 2 filters.
-                </p>
-              )}
-            </div>
-          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">

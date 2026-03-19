@@ -1,5 +1,6 @@
 export type FilterId =
   | "none"
+  | "disposable-starter"
   | "vintage"
   | "bw-classic"
   | "bw-high-contrast"
@@ -15,6 +16,11 @@ export type FilterPreset = {
 
 export const FILTER_PRESETS: FilterPreset[] = [
   { id: "none", name: "No Filter", description: "Original unmodified photo" },
+  {
+    id: "disposable-starter",
+    name: "Disposable Starter",
+    description: "Warm film tone, subtle fade, soft contrast",
+  },
   { id: "vintage", name: "Vintage", description: "Warm muted tones, slight fade" },
   { id: "bw-classic", name: "B&W Classic", description: "Soft black and white" },
   { id: "bw-high-contrast", name: "B&W Bold", description: "High contrast monochrome" },
@@ -25,6 +31,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
 
 export const MVP_FILTER_IDS: FilterId[] = [
   "none",
+  "disposable-starter",
   "vintage",
   "bw-classic",
   "bw-high-contrast",

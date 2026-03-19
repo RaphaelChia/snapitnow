@@ -205,7 +205,7 @@ export function PhotoSlideshow({
       <DialogTitle style={{ ...VisuallyHidden.VISUALLY_HIDDEN_STYLES }}>
         Photo Slideshow
       </DialogTitle>
-      <DialogContent className="flex h-[90dvh] w-[96vw] max-w-[96vw] flex-col gap-0 overflow-hidden border-none bg-black/95 p-0 sm:h-[92dvh] sm:w-[94vw] sm:max-w-[94vw] lg:w-[88vw] lg:max-w-[88vw] xl:w-[84vw] xl:max-w-[84vw] sm:rounded-2xl [&>button]:hidden">
+      <DialogContent className="flex h-[100dvh] w-[100dvw] max-w-[100dvw] flex-col gap-0 overflow-hidden border-none bg-black/95 p-0 sm:h-[100dvh] sm:w-[100dvw] sm:max-w-[100dvw] lg:w-[100dvw] lg:max-w-[100dvw] xl:w-[100dvw] xl:max-w-[100dvw] sm:rounded-2xl [&>button]:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <span className="text-sm font-medium text-white/70">
             {index + 1} / {count}

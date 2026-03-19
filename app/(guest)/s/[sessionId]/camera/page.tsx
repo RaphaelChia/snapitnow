@@ -12,7 +12,7 @@ import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, RefreshCwIcon, Youtube } from "lucide-react";
+import { RefreshCwIcon, Youtube } from "lucide-react";
 
 function getExpiredSessionTitle(error: GuestApiError): string | null {
   if (!error.details || typeof error.details !== "object") {
@@ -212,6 +212,8 @@ export default function GuestCameraPage() {
   const shotsTaken = Math.max(0, session.roll_preset - remainingShots);
   const unlockThreshold = Math.ceil(session.roll_preset / 2);
   const galleryUnlocked = shotsTaken >= unlockThreshold;
+  const controlButton3dClass =
+    "p-1.5 aspect-square rounded-full border border-white/25 bg-gradient-to-b from-white/25 to-white/5 text-white/95 shadow-[0_3px_0_rgba(0,0,0,0.35),0_10px_18px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all duration-150 hover:border-primary/45 hover:from-white/35 hover:to-white/10 hover:text-white active:translate-y-[1px] active:shadow-[0_1px_0_rgba(0,0,0,0.35),0_5px_12px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.3)] disabled:translate-y-0 disabled:shadow-[0_3px_0_rgba(0,0,0,0.25),0_8px_14px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.25)] disabled:opacity-50";
 
   if (rollExhausted) {
     return (
@@ -301,26 +303,23 @@ export default function GuestCameraPage() {
               showRemainingLabel={false}
             />
 
-            <div className="absolute top-1/2 -translate-y-1/2 left-4 items-center justify-center rounded-none">
-              <Button
-                asChild
-                variant="ghost"
-                className="p-0 aspect-square h-fit bg-transparent rounded-lg  text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white"
+            <div className="absolute top-[30%] -translate-y-1/2 left-4 items-center justify-center rounded-none">
+              <div
+                className={controlButton3dClass}
               >
-                <Link href={`/s/${sessionId}/gallery`}><Youtube className="size-8 text-neutral-400" /></Link>
-              </Button>
+                <Link href={`/s/${sessionId}/gallery`}><Youtube className="size-5 text-neutral-400" /></Link>
+              </div>
             </div>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 items-center justify-center rounded-none">
-              <Button
+            <div className="absolute top-[70%] -translate-y-1/2 left-4 items-center justify-center rounded-none">
+              <button
                 type="button"
-                variant="outline"
                 onClick={handleFlipCamera}
                 disabled={isCapturingOrUploading}
-                className="p-0 aspect-square h-fit bg-transparent rounded-lg border-white/30 text-white/95 hover:border-primary/45 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className={controlButton3dClass}
                 aria-label="Flip camera"
               >
-                <RefreshCwIcon className="size-8 text-neutral-400" />
-              </Button>
+                <RefreshCwIcon className="size-5 text-neutral-400" />
+              </button>
             </div>
           </div>
         )}

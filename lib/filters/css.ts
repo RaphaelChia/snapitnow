@@ -2,6 +2,8 @@ import type { FilterId } from "./presets"
 
 export const FILTER_CSS: Record<FilterId, string> = {
   "none": "none",
+  "disposable-starter":
+    "sepia(0.2) saturate(0.94) brightness(1.04) contrast(1.08) hue-rotate(-6deg)",
   "vintage": "sepia(0.35) contrast(1.1) brightness(0.95) saturate(0.8)",
   "bw-classic": "grayscale(1) contrast(1.15) brightness(1.05)",
   "bw-high-contrast": "grayscale(1) contrast(1.5) brightness(0.95)",
