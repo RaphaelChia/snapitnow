@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
-import Image from "next/image"
 import { FILTER_CSS } from "@/lib/filters/css"
 import type { FilterId } from "@/lib/filters/presets"
 
@@ -13,6 +12,43 @@ type WindowWithImageCapture = Window & {
   ImageCapture?: new (track: MediaStreamTrack) => ImageCaptureLike
 }
 
+const CAPTURE_QUALITY = 0.92
+const PORTRAIT_ASPECT_RATIO = 3 / 4
+const LANDSCAPE_ASPECT_RATIO = 4 / 3
+
+type CropRect = {
+  sx: number
+  sy: number
+  sw: number
+  sh: number
+}
+
+function getCenteredCropRect(width: number, height: number, targetAspect: number): CropRect {
+  const sourceAspect = width / height
+
+  if (Math.abs(sourceAspect - targetAspect) < 0.0001) {
+    return { sx: 0, sy: 0, sw: width, sh: height }
+  }
+
+  if (sourceAspect > targetAspect) {
+    const sw = height * targetAspect
+    return {
+      sx: (width - sw) / 2,
+      sy: 0,
+      sw,
+      sh: height,
+    }
+  }
+
+  const sh = width / targetAspect
+  return {
+    sx: 0,
+    sy: (height - sh) / 2,
+    sw: width,
+    sh,
+  }
+}
+
 export interface CameraViewfinderHandle {
   captureFrame: () => Promise<Blob | null>
 }
@@ -20,6 +56,7 @@ export interface CameraViewfinderHandle {
 interface CameraViewfinderProps {
   activeFilterId: FilterId
   facingMode: "user" | "environment"
+  captureOrientation: "portrait" | "landscape"
   frozenPreviewUrl?: string | null
   isFrozen?: boolean
   onStreamReady?: () => void
@@ -30,7 +67,15 @@ export const CameraViewfinder = forwardRef<
   CameraViewfinderHandle,
   CameraViewfinderProps
 >(function CameraViewfinder(
-  { activeFilterId, facingMode, frozenPreviewUrl, isFrozen = false, onStreamReady, onStreamError },
+  {
+    activeFilterId,
+    facingMode,
+    captureOrientation,
+    frozenPreviewUrl,
+    isFrozen = false,
+    onStreamReady,
+    onStreamError,
+  },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -38,6 +83,10 @@ export const CameraViewfinder = forwardRef<
   const [activeFacingMode, setActiveFacingMode] = useState<"user" | "environment">(
     facingMode,
   )
+  const targetAspectRatio =
+    captureOrientation === "portrait" ? PORTRAIT_ASPECT_RATIO : LANDSCAPE_ASPECT_RATIO
+  const preferredWidth = captureOrientation === "portrait" ? 1200 : 1600
+  const preferredHeight = captureOrientation === "portrait" ? 1600 : 1200
 
   useEffect(() => {
     let cancelled = false
@@ -49,23 +98,26 @@ export const CameraViewfinder = forwardRef<
           {
             video: {
               facingMode: { exact: facingMode },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              aspectRatio: { ideal: targetAspectRatio },
+              width: { ideal: preferredWidth },
+              height: { ideal: preferredHeight },
             },
             audio: false,
           },
           {
             video: {
               facingMode: { ideal: facingMode },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              aspectRatio: { ideal: targetAspectRatio },
+              width: { ideal: preferredWidth },
+              height: { ideal: preferredHeight },
             },
             audio: false,
           },
           {
             video: {
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              aspectRatio: { ideal: targetAspectRatio },
+              width: { ideal: preferredWidth },
+              height: { ideal: preferredHeight },
             },
             audio: false,
           },
@@ -115,24 +167,95 @@ export const CameraViewfinder = forwardRef<
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
     }
-  }, [facingMode, onStreamReady, onStreamError])
+  }, [
+    facingMode,
+    onStreamReady,
+    onStreamError,
+    targetAspectRatio,
+    preferredWidth,
+    preferredHeight,
+  ])
 
-  const captureFromCanvas = (): Promise<Blob | null> => {
-    const video = videoRef.current
-    if (!video || video.readyState < 2) return Promise.resolve(null)
+  const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
+    return new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", CAPTURE_QUALITY)
+    })
+  }
+
+  const cropVideoFrameToTargetAspect = (video: HTMLVideoElement): Promise<Blob | null> => {
+    const sourceWidth = video.videoWidth
+    const sourceHeight = video.videoHeight
+    if (!sourceWidth || !sourceHeight) return Promise.resolve(null)
+
+    const crop = getCenteredCropRect(sourceWidth, sourceHeight, targetAspectRatio)
+    const outputHeight = Math.round(crop.sh)
+    const outputWidth = Math.round(outputHeight * targetAspectRatio)
 
     const canvas = document.createElement("canvas")
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    canvas.width = outputWidth
+    canvas.height = outputHeight
     const ctx = canvas.getContext("2d")
     if (!ctx) return Promise.resolve(null)
 
     // Keep the captured file normalized; mirror only in preview UI.
-    ctx.drawImage(video, 0, 0)
+    ctx.drawImage(
+      video,
+      crop.sx,
+      crop.sy,
+      crop.sw,
+      crop.sh,
+      0,
+      0,
+      outputWidth,
+      outputHeight,
+    )
 
-    return new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
-    })
+    return canvasToBlob(canvas)
+  }
+
+  const cropBlobToTargetAspect = async (sourceBlob: Blob): Promise<Blob | null> => {
+    try {
+      if (typeof createImageBitmap === "function") {
+        const bitmap = await createImageBitmap(sourceBlob)
+        try {
+          const crop = getCenteredCropRect(bitmap.width, bitmap.height, targetAspectRatio)
+          const outputWidth = Math.round(crop.sw)
+          const outputHeight = Math.round(crop.sh)
+
+          const canvas = document.createElement("canvas")
+          canvas.width = outputWidth
+          canvas.height = outputHeight
+          const ctx = canvas.getContext("2d")
+          if (!ctx) return null
+
+          ctx.drawImage(
+            bitmap,
+            crop.sx,
+            crop.sy,
+            crop.sw,
+            crop.sh,
+            0,
+            0,
+            outputWidth,
+            outputHeight,
+          )
+
+          return await canvasToBlob(canvas)
+        } finally {
+          bitmap.close()
+        }
+      }
+    } catch {
+      // Fall through to canvas fallback if bitmap decode fails.
+    }
+
+    return null
+  }
+
+  const captureFromCanvas = (): Promise<Blob | null> => {
+    const video = videoRef.current
+    if (!video || video.readyState < 2) return Promise.resolve(null)
+    return cropVideoFrameToTargetAspect(video)
   }
 
   useImperativeHandle(ref, () => ({
@@ -148,17 +271,19 @@ export const CameraViewfinder = forwardRef<
           const imageCapture = new imageCaptureCtor(track)
           const blob = await imageCapture.takePhoto()
           if (blob && blob.size > 0) {
-            return blob
+            const croppedBlob = await cropBlobToTargetAspect(blob)
+            if (croppedBlob && croppedBlob.size > 0) {
+              return croppedBlob
+            }
           }
         } catch {
-          // If still capture is unsupported or fails on this device/browser,
-          // continue with canvas fallback for compatibility.
+          // If still capture is unsupported or fails on this browser, use canvas fallback.
         }
       }
 
       return captureFromCanvas()
     },
-  }), [])
+  }), [captureFromCanvas, cropBlobToTargetAspect])
 
   const cssFilter = FILTER_CSS[activeFilterId]
   const shouldMirror = activeFacingMode === "user"
@@ -171,7 +296,7 @@ export const CameraViewfinder = forwardRef<
         playsInline
         muted
         style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
-        className="h-full w-full object-cover"
+        className={`h-full w-full object-cover ${isFrozen ? "opacity-0" : "opacity-100"} transition-opacity duration-75`}
         onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
       />
@@ -182,13 +307,10 @@ export const CameraViewfinder = forwardRef<
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-analog-secondary opacity-40 pointer-events-none"></div>
 
       {isFrozen && frozenPreviewUrl && (
-        <Image
+        <img
           src={frozenPreviewUrl}
           alt="Captured preview"
-          fill
-          unoptimized
-          sizes="100vw"
-          className="absolute inset-0 object-cover"
+          className="absolute inset-0 z-20 h-full w-full object-cover"
           style={{ filter: cssFilter, transform: shouldMirror ? "scaleX(-1)" : undefined }}
         />
       )}
