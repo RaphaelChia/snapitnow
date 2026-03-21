@@ -37,6 +37,7 @@ export default function GuestCameraPage() {
   const [caption, setCaption] = useState("");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [captureOrientation, setCaptureOrientation] = useState<"portrait" | "landscape">("portrait");
   const cameraInitQuery = useGuestCameraInit(sessionId);
   const session = cameraInitQuery.data?.session ?? null;
   const guestSession = cameraInitQuery.data?.guestSession ?? null;
@@ -262,26 +263,29 @@ export default function GuestCameraPage() {
 
       <main className="flex flex-col h-[calc(100dvh-64px)] w-full max-w-lg mx-auto p-4 pb-0 gap-4">
         {/* Viewfinder Section */}
-        <section className="relative flex-grow w-full overflow-hidden">
-          <CameraViewfinder
-            ref={cameraRef}
-            activeFilterId={activeFilterId}
-            facingMode={facingMode}
-            isFrozen={Boolean(frozenPreviewUrl)}
-            frozenPreviewUrl={frozenPreviewUrl}
-            onStreamError={handleStreamError}
-          />
+        <section className="flex grow w-full items-center justify-center overflow-hidden">
+          <div className={`relative w-full ${captureOrientation === "portrait" ? "aspect-3/4" : "aspect-4/3"}`}>
+            <CameraViewfinder
+              ref={cameraRef}
+              activeFilterId={activeFilterId}
+              facingMode={facingMode}
+              captureOrientation={captureOrientation}
+              isFrozen={Boolean(frozenPreviewUrl)}
+              frozenPreviewUrl={frozenPreviewUrl}
+              onStreamError={handleStreamError}
+            />
 
-          {/* Viewfinder UI Overlays */}
-          <div className="absolute top-4 left-4 flex flex-col gap-1 pointer-events-none">
-            <div className="bg-analog-surface-container-lowest/60 backdrop-blur-sm px-2 py-0.5 rounded-sm">
-              <span className="text-[10px] uppercase tracking-widest text-analog-primary font-bold">LIVE</span>
+            {/* Viewfinder UI Overlays */}
+            <div className="absolute top-4 left-4 flex flex-col gap-1 pointer-events-none">
+              <div className="bg-analog-surface-container-lowest/60 backdrop-blur-sm px-2 py-0.5 rounded-sm">
+                <span className="text-[10px] uppercase tracking-widest text-analog-primary font-bold">LIVE</span>
+              </div>
             </div>
-          </div>
 
-          {/* Digital Date Stamp */}
-          <div className="absolute bottom-6 right-6 font-space-grotesk text-analog-primary-container text-xl italic font-bold tracking-tighter pointer-events-none" style={{ filter: "drop-shadow(0 0 2px rgba(255, 176, 0, 0.5))" }}>
-            &apos;26  03  21
+            {/* Digital Date Stamp */}
+            <div className="absolute bottom-6 right-6 font-space-grotesk text-analog-primary-container text-xl italic font-bold tracking-tighter pointer-events-none" style={{ filter: "drop-shadow(0 0 2px rgba(255, 176, 0, 0.5))" }}>
+              &apos;26  03  21
+            </div>
           </div>
         </section>
 
@@ -325,6 +329,29 @@ export default function GuestCameraPage() {
                   >
                     <RefreshCwIcon className="size-5" />
                   </button>
+                </div>
+
+                {/* Aspect Toggle */}
+                <div className="mt-4 flex flex-col items-center gap-2 ml-4">
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Frame</span>
+                  <div className="flex overflow-hidden rounded-md border border-analog-outline/30">
+                    <button
+                      type="button"
+                      onClick={() => setCaptureOrientation("portrait")}
+                      disabled={isCapturingOrUploading || Boolean(pendingBlob)}
+                      className={`px-2 py-1 text-[10px] uppercase tracking-wide ${captureOrientation === "portrait" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
+                    >
+                      3:4
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCaptureOrientation("landscape")}
+                      disabled={isCapturingOrUploading || Boolean(pendingBlob)}
+                      className={`px-2 py-1 text-[10px] uppercase tracking-wide ${captureOrientation === "landscape" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
+                    >
+                      4:3
+                    </button>
+                  </div>
                 </div>
 
               </div>
