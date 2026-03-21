@@ -164,7 +164,7 @@ export const CameraViewfinder = forwardRef<
   const shouldMirror = activeFacingMode === "user"
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-analog-surface-container-lowest border-4 border-analog-surface-container-high analog-machined-depth rounded-lg">
       <video
         ref={videoRef}
         autoPlay
@@ -175,6 +175,12 @@ export const CameraViewfinder = forwardRef<
         onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
       />
+      {/* Warm Grain Overlay for Viewfinder */}
+      <div className="absolute inset-0 bg-analog-primary-container/10 mix-blend-overlay pointer-events-none"></div>
+      
+      {/* Focus Square */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-analog-secondary opacity-40 pointer-events-none"></div>
+
       {isFrozen && frozenPreviewUrl && (
         <Image
           src={frozenPreviewUrl}

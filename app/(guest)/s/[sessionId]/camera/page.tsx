@@ -153,8 +153,12 @@ export default function GuestCameraPage() {
 
   if (cameraInitQuery.isPending || isUnauthenticated) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-black">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      <div className="flex h-dvh items-center justify-center bg-analog-surface font-space-grotesk">
+        <div className="analog-grain-overlay"></div>
+        <div className="flex flex-col items-center gap-4 z-10">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-analog-outline/30 border-t-analog-primary" />
+          <p className="text-[10px] uppercase tracking-[0.3em] text-analog-outline font-bold">Initializing Lens</p>
+        </div>
       </div>
     );
   }
@@ -162,13 +166,17 @@ export default function GuestCameraPage() {
   if (isSessionExpired && cameraInitQuery.error instanceof GuestApiError) {
     const title = getExpiredSessionTitle(cameraInitQuery.error);
     return (
-      <div className="flex h-[calc(100dvh-56px)] items-center justify-center bg-black px-6 text-center">
-        <div className="space-y-3">
-          <p className="text-sm text-white/90">
-            Thank you for being part of {title ?? "this celebration"}.
-          </p>
-          <p className="text-xs text-white/60">Uploads are now closed.</p>
-          <Button asChild variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10">
+      <div className="flex h-dvh items-center justify-center bg-analog-surface font-space-grotesk px-6 text-center">
+        <div className="analog-grain-overlay"></div>
+        <div className="space-y-6 z-10">
+          <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-3xl uppercase">SESSION CLOSED</h1>
+          <div className="space-y-2">
+            <p className="text-sm text-analog-tertiary/90 tracking-wide uppercase">
+              Thank you for being part of {title ?? "this celebration"}.
+            </p>
+            <p className="text-xs text-analog-outline tracking-widest uppercase font-bold">Uploads are now closed.</p>
+          </div>
+          <Button asChild variant="outline" className="rounded-none border-analog-outline/30 text-analog-tertiary hover:bg-analog-surface-container-high px-8">
             <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
           </Button>
         </div>
@@ -178,13 +186,17 @@ export default function GuestCameraPage() {
 
   if (error) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center">
-        <p className="text-sm text-red-300/90">{error}</p>
+      <div className="flex h-dvh flex-col items-center justify-center gap-6 bg-analog-surface font-space-grotesk px-6 text-center">
+        <div className="analog-grain-overlay"></div>
+        <div className="space-y-2 z-10">
+          <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-3xl uppercase">SYSTEM ERROR</h1>
+          <p className="text-sm text-red-400/90 tracking-wide uppercase font-bold">{error}</p>
+        </div>
         <Button
           type="button"
           variant="outline"
           onClick={() => window.location.reload()}
-          className="border-white/25 bg-transparent text-white/90 hover:bg-white/10 hover:text-white"
+          className="rounded-none border-analog-outline/30 text-analog-tertiary hover:bg-analog-surface-container-high px-8 z-10"
         >
           Try again
         </Button>
@@ -194,8 +206,9 @@ export default function GuestCameraPage() {
 
   if (!session || !guestSession) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-black">
-        <p className="text-sm text-white/50">Session not found</p>
+      <div className="flex h-dvh items-center justify-center bg-analog-surface font-space-grotesk">
+        <div className="analog-grain-overlay"></div>
+        <p className="text-sm text-analog-outline tracking-widest uppercase font-bold z-10">Session not found</p>
       </div>
     );
   }
@@ -217,18 +230,19 @@ export default function GuestCameraPage() {
 
   if (rollExhausted) {
     return (
-      <div className="flex h-[calc(100dvh-56px)] items-center justify-center bg-black">
-        <div className="flex flex-col items-center justify-center gap-2 pb-6">
+      <div className="flex h-dvh items-center justify-center bg-analog-surface font-space-grotesk">
+        <div className="analog-grain-overlay"></div>
+        <div className="flex flex-col items-center justify-center gap-4 pb-6 z-10">
+          <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-3xl uppercase mb-4">ROLL EXHAUSTED</h1>
           <Button
             asChild
             variant="outline"
-            className="border-white/25 bg-transparent text-white/95 hover:border-primary/40 hover:bg-white/10 hover:text-white"
+            className="rounded-none border-analog-outline/30 text-analog-tertiary hover:bg-analog-surface-container-high px-8 py-6 text-lg"
           >
             <Link href={`/s/${sessionId}/gallery`}>View gallery</Link>
           </Button>
-          <p className="text-xs text-white/70">
-            You&apos;ve used up all {session.roll_preset}/{session.roll_preset}{" "}
-            of your roll.
+          <p className="text-sm text-analog-outline tracking-widest uppercase font-bold">
+            {session.roll_preset}/{session.roll_preset} MOMENTS CAPTURED
           </p>
         </div>
       </div>
@@ -236,94 +250,132 @@ export default function GuestCameraPage() {
   }
 
   return (
-    <div className="relative h-[calc(100dvh-56px)] overflow-hidden bg-black">
-      <CameraViewfinder
-        ref={cameraRef}
-        activeFilterId={activeFilterId}
-        facingMode={facingMode}
-        isFrozen={Boolean(frozenPreviewUrl)}
-        frozenPreviewUrl={frozenPreviewUrl}
-        onStreamError={handleStreamError}
-      />
+    <div className="relative h-dvh overflow-hidden bg-analog-surface font-space-grotesk">
+      <div className="analog-grain-overlay"></div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),1rem)]">
+      {/* Header */}
+      <header className="flex justify-between items-center px-6 py-4 w-full bg-analog-surface z-40">
         <div className="flex items-center gap-2">
-          <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
-            {remainingShots <= 0
-              ? "All captured"
-              : `${remainingShots} moment${remainingShots === 1 ? "" : "s"
-              } left`}
-          </div>
-          {!galleryUnlocked && (
-            <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-sm">
-              {Math.max(0, unlockThreshold - shotsTaken)} more to unlock gallery
-            </div>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" className="text-analog-primary-container"><path d="M440-120v-240h80v80h320v80H520v80h-80Zm-320-80v-80h240v80H120Zm160-160v-80H120v-80h160v-80h80v240h-80Zm160-80v-80h400v80H440Zm160-160v-240h80v80h160v80H680v80h-80Zm-480-80v-80h400v80H120Z"/></svg>
         </div>
-      </div>
+        <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-2xl uppercase">THE ANALOG LENS</h1>
+        <div className="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" className="text-analog-primary-container"><path d="M320-80v-440l280 240v-120L320-680v280L120-600v-280h480v160l240 200v120L600-320v120l240 200v120H320Z"/></svg>
+        </div>
+      </header>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-[max(env(safe-area-inset-bottom),0.9rem)]">
-        {pendingBlob ? (
-          <div className="rounded-[1.75rem] border border-white/15 bg-black/65 px-4 py-4 backdrop-blur-md flex flex-col items-center justify-center">
-            <input
-              type="text"
-              maxLength={16}
-              placeholder="Add a short caption (optional)"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="mb-3 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-center text-sm text-white placeholder:text-white/40 focus:border-primary/50 focus:outline-none"
-              autoFocus
-            />
-            <Button
-              onClick={handleConfirmUpload}
-              disabled={isCapturingOrUploading}
-              className="max-sm:w-full w-fit px-4 rounded-full font-medium text-primary-foreground shadow-romance transition-all hover:opacity-90 disabled:opacity-50"
-            >
-              {isCapturingOrUploading
-                ? "Saving..."
-                : caption.trim()
-                  ? "Submit with caption"
-                  : "Submit"}
-            </Button>
+      <main className="flex flex-col h-[calc(100vh-140px)] w-full max-w-lg mx-auto p-4 gap-4">
+        {/* Viewfinder Section */}
+        <section className="relative flex-grow w-full overflow-hidden">
+          <CameraViewfinder
+            ref={cameraRef}
+            activeFilterId={activeFilterId}
+            facingMode={facingMode}
+            isFrozen={Boolean(frozenPreviewUrl)}
+            frozenPreviewUrl={frozenPreviewUrl}
+            onStreamError={handleStreamError}
+          />
+
+          {/* Viewfinder UI Overlays */}
+          <div className="absolute top-4 left-4 flex flex-col gap-1 pointer-events-none">
+            <div className="bg-analog-surface-container-lowest/60 backdrop-blur-sm px-2 py-0.5 rounded-sm">
+              <span className="text-[10px] uppercase tracking-widest text-analog-primary font-bold">LIVE</span>
+            </div>
           </div>
-        ) : (
-          <div className="relative rounded-[1.75rem] border border-white/15 bg-black/65 backdrop-blur-md">
-            {showFilterStrip && (
-              <FilterStrip
-                allowedFilters={session.allowed_filters as FilterId[]}
-                activeFilterId={activeFilterId}
-                onSelect={setSelectedFilterId}
+
+          {/* Digital Date Stamp */}
+          <div className="absolute bottom-6 right-6 font-space-grotesk text-analog-primary-container text-xl italic font-bold tracking-tighter pointer-events-none" style={{ filter: "drop-shadow(0 0 2px rgba(255, 176, 0, 0.5))" }}>
+            &apos;26  03  21
+          </div>
+        </section>
+
+        {/* Camera Hardware Interface */}
+        <section className="flex flex-col gap-6 bg-analog-surface-container-low p-6 rounded-t-xl border-t border-analog-outline/15">
+          {pendingBlob ? (
+            <div className="flex flex-col items-center justify-center">
+              <input
+                type="text"
+                maxLength={16}
+                placeholder="Add a short caption (optional)"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                className="mb-3 w-full rounded-none border-b border-analog-outline/30 bg-transparent px-3 py-2 text-center text-sm text-analog-tertiary placeholder:text-analog-outline/40 focus:border-analog-primary focus:outline-none"
+                autoFocus
               />
-            )}
-
-            <CaptureButton
-              isBusy={isCapturingOrUploading}
-              shotsRemaining={remainingShots}
-              onCapture={handleCapture}
-              showRemainingLabel={false}
-            />
-
-            <div className="absolute top-[30%] -translate-y-1/2 left-4 items-center justify-center rounded-none">
-              <div
-                className={controlButton3dClass}
-              >
-                <Link href={`/s/${sessionId}/gallery`}><Youtube className="size-5 text-neutral-400" /></Link>
+              <div className="flex gap-3 w-full">
+                <Button
+                  onClick={() => {
+                    if (frozenPreviewUrl) URL.revokeObjectURL(frozenPreviewUrl);
+                    setFrozenPreviewUrl(null);
+                    setPendingBlob(null);
+                  }}
+                  variant="outline"
+                  className="flex-1 rounded-none border-analog-outline/30 text-analog-tertiary hover:bg-analog-surface-container-high"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleConfirmUpload}
+                  disabled={isCapturingOrUploading}
+                  className="flex-2 rounded-none bg-analog-primary text-analog-on-primary font-bold hover:bg-analog-primary/90 disabled:opacity-50"
+                >
+                  {isCapturingOrUploading ? "Saving..." : "Keep Photo"}
+                </Button>
               </div>
             </div>
-            <div className="absolute top-[70%] -translate-y-1/2 left-4 items-center justify-center rounded-none">
-              <button
-                type="button"
-                onClick={handleFlipCamera}
-                disabled={isCapturingOrUploading}
-                className={controlButton3dClass}
-                aria-label="Flip camera"
-              >
-                <RefreshCwIcon className="size-5 text-neutral-400" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <>
+              {/* Primary Controls Row */}
+              <div className="flex items-center justify-between">
+                {/* Filter Selector */}
+                <div className="flex flex-col gap-2 flex-grow">
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Filter Mode</span>
+                  {showFilterStrip && (
+                    <FilterStrip
+                      allowedFilters={session.allowed_filters as FilterId[]}
+                      activeFilterId={activeFilterId}
+                      onSelect={setSelectedFilterId}
+                    />
+                  )}
+                </div>
+
+                {/* Flip Camera */}
+                <div className="flex flex-col items-center gap-2 ml-4">
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Flip</span>
+                  <button
+                    type="button"
+                    onClick={handleFlipCamera}
+                    disabled={isCapturingOrUploading}
+                    className="w-10 h-10 bg-analog-surface-container-lowest rounded-full flex items-center justify-center analog-machined-depth text-analog-outline active:scale-95 transition-transform"
+                  >
+                    <RefreshCwIcon className="size-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Shutter Assembly */}
+              <CaptureButton
+                isBusy={isCapturingOrUploading}
+                shotsRemaining={remainingShots}
+                onCapture={handleCapture}
+                showRemainingLabel={false}
+              />
+
+              {/* Exposure Counter */}
+              <div className="flex justify-center">
+                <div className="bg-analog-surface-container-lowest px-4 py-1 rounded-sm flex items-baseline gap-2 border border-analog-outline/10">
+                  <span className="text-[8px] uppercase tracking-widest text-analog-outline font-bold">Exposures</span>
+                  <span className="font-newsreader italic text-2xl text-analog-tertiary leading-none">{shotsTaken}</span>
+                  <span className="text-xs text-analog-outline">/ {session.roll_preset}</span>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+
+      {/* Viewfinder Nav Marker */}
+      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-analog-primary rounded-full shadow-[0_0_8px_rgba(255,213,151,0.8)] z-50"></div>
     </div>
   );
 }
