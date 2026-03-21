@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
 
 function BrandMark() {
@@ -14,6 +15,11 @@ function BrandMark() {
 }
 
 export function GuestNavbar() {
+  const pathname = usePathname();
+  const isCameraPage = pathname?.endsWith("/camera");
+
+  if (isCameraPage) return null;
+
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border/80 bg-background/90 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
