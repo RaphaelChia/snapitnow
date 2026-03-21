@@ -262,6 +262,7 @@ export const CameraViewfinder = forwardRef<
     async captureFrame(): Promise<Blob | null> {
       const track = streamRef.current?.getVideoTracks()?.[0]
       if (!track || track.readyState !== "live") {
+        console.log('using capturefromcanvas')
         return captureFromCanvas()
       }
 
@@ -269,10 +270,13 @@ export const CameraViewfinder = forwardRef<
       if (imageCaptureCtor) {
         try {
           const imageCapture = new imageCaptureCtor(track)
+          console.log('using imagecapture')
           const blob = await imageCapture.takePhoto()
+          console.log('after takephoto imagecapture')
           if (blob && blob.size > 0) {
             const croppedBlob = await cropBlobToTargetAspect(blob)
             if (croppedBlob && croppedBlob.size > 0) {
+              console.log('croppedBlob', croppedBlob.size)
               return croppedBlob
             }
           }
@@ -302,7 +306,7 @@ export const CameraViewfinder = forwardRef<
       />
       {/* Warm Grain Overlay for Viewfinder */}
       <div className="absolute inset-0 bg-analog-primary-container/10 mix-blend-overlay pointer-events-none"></div>
-      
+
       {/* Focus Square */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-analog-secondary opacity-40 pointer-events-none"></div>
 
