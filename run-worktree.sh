@@ -31,7 +31,7 @@ if [[ ! -d "$worktree_path" ]]; then
 fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source_env="$script_dir/.env.local"
+source_env="$script_dir/.env"
 target_env="$worktree_path/.env.local"
 
 if [[ ! -f "$source_env" ]]; then

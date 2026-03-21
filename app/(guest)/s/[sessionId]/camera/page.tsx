@@ -254,17 +254,13 @@ export default function GuestCameraPage() {
       <div className="analog-grain-overlay"></div>
 
       {/* Header */}
-      <header className="flex justify-between items-center px-6 py-4 w-full bg-analog-surface z-40">
-        <div className="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" className="text-analog-primary-container"><path d="M440-120v-240h80v80h320v80H520v80h-80Zm-320-80v-80h240v80H120Zm160-160v-80H120v-80h160v-80h80v240h-80Zm160-80v-80h400v80H440Zm160-160v-240h80v80h160v80H680v80h-80Zm-480-80v-80h400v80H120Z"/></svg>
-        </div>
-        <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-2xl uppercase">THE ANALOG LENS</h1>
-        <div className="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor" className="text-analog-primary-container"><path d="M320-80v-440l280 240v-120L320-680v280L120-600v-280h480v160l240 200v120L600-320v120l240 200v120H320Z"/></svg>
-        </div>
+      <header className="flex justify-around items-center px-6 py-4 w-full bg-analog-surface z-40">
+
+        <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-2xl uppercase">M M R S</h1>
+
       </header>
 
-      <main className="flex flex-col h-[calc(100vh-140px)] w-full max-w-lg mx-auto p-4 gap-4">
+      <main className="flex flex-col h-[calc(100dvh-64px)] w-full max-w-lg mx-auto p-4 pb-0 gap-4">
         {/* Viewfinder Section */}
         <section className="relative flex-grow w-full overflow-hidden">
           <CameraViewfinder
@@ -303,41 +299,20 @@ export default function GuestCameraPage() {
                 autoFocus
               />
               <div className="flex gap-3 w-full">
-                <Button
-                  onClick={() => {
-                    if (frozenPreviewUrl) URL.revokeObjectURL(frozenPreviewUrl);
-                    setFrozenPreviewUrl(null);
-                    setPendingBlob(null);
-                  }}
-                  variant="outline"
-                  className="flex-1 rounded-none border-analog-outline/30 text-analog-tertiary hover:bg-analog-surface-container-high"
-                >
-                  Discard
-                </Button>
+
                 <Button
                   onClick={handleConfirmUpload}
                   disabled={isCapturingOrUploading}
                   className="flex-2 rounded-none bg-analog-primary text-analog-on-primary font-bold hover:bg-analog-primary/90 disabled:opacity-50"
                 >
-                  {isCapturingOrUploading ? "Saving..." : "Keep Photo"}
+                  {isCapturingOrUploading ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
           ) : (
             <>
               {/* Primary Controls Row */}
-              <div className="flex items-center justify-between">
-                {/* Filter Selector */}
-                <div className="flex flex-col gap-2 flex-grow">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Filter Mode</span>
-                  {showFilterStrip && (
-                    <FilterStrip
-                      allowedFilters={session.allowed_filters as FilterId[]}
-                      activeFilterId={activeFilterId}
-                      onSelect={setSelectedFilterId}
-                    />
-                  )}
-                </div>
+              <div className="absolute">
 
                 {/* Flip Camera */}
                 <div className="flex flex-col items-center gap-2 ml-4">
@@ -351,6 +326,7 @@ export default function GuestCameraPage() {
                     <RefreshCwIcon className="size-5" />
                   </button>
                 </div>
+
               </div>
 
               {/* Shutter Assembly */}
@@ -363,6 +339,7 @@ export default function GuestCameraPage() {
 
               {/* Exposure Counter */}
               <div className="flex justify-center">
+
                 <div className="bg-analog-surface-container-lowest px-4 py-1 rounded-sm flex items-baseline gap-2 border border-analog-outline/10">
                   <span className="text-[8px] uppercase tracking-widest text-analog-outline font-bold">Exposures</span>
                   <span className="font-newsreader italic text-2xl text-analog-tertiary leading-none">{shotsTaken}</span>
