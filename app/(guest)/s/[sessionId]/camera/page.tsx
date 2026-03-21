@@ -7,7 +7,7 @@ import {
   CameraViewfinder,
   type CameraViewfinderHandle,
 } from "./camera-viewfinder";
-import { FilterStrip } from "./filter-strip";
+
 import { CaptureButton } from "./capture-button";
 import type { FilterId } from "@/lib/filters/presets";
 import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
@@ -224,10 +224,6 @@ export default function GuestCameraPage() {
   );
   const rollExhausted = remainingShots <= 0;
   const shotsTaken = Math.max(0, session.roll_preset - remainingShots);
-  const unlockThreshold = Math.ceil(session.roll_preset / 2);
-  const galleryUnlocked = shotsTaken >= unlockThreshold;
-  const controlButton3dClass =
-    "p-1.5 aspect-square rounded-full border border-white/25 bg-gradient-to-b from-white/25 to-white/5 text-white/95 shadow-[0_3px_0_rgba(0,0,0,0.35),0_10px_18px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all duration-150 hover:border-primary/45 hover:from-white/35 hover:to-white/10 hover:text-white active:translate-y-[1px] active:shadow-[0_1px_0_rgba(0,0,0,0.35),0_5px_12px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.3)] disabled:translate-y-0 disabled:shadow-[0_3px_0_rgba(0,0,0,0.25),0_8px_14px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.25)] disabled:opacity-50";
 
   if (rollExhausted) {
     return (
@@ -256,15 +252,13 @@ export default function GuestCameraPage() {
 
       {/* Header */}
       <header className="flex justify-around items-center px-6 py-4 w-full bg-analog-surface z-40">
-
         <h1 className="font-newsreader font-bold text-analog-tertiary tracking-tighter italic text-2xl uppercase">M M R S</h1>
-
       </header>
 
       <main className="flex flex-col h-[calc(100dvh-64px)] w-full max-w-lg mx-auto p-4 pb-0 gap-4">
         {/* Viewfinder Section */}
-        <section className="flex grow w-full items-center justify-center overflow-hidden">
-          <div className={`relative w-full ${captureOrientation === "portrait" ? "aspect-3/4" : "aspect-4/3"}`}>
+        <section className="flex grow w-full  items-center justify-center overflow-hidden">
+          <div className={`relative max-w-full max-h-full ${captureOrientation === "portrait" ? "aspect-3/4" : "aspect-4/3"}`}>
             <CameraViewfinder
               ref={cameraRef}
               activeFilterId={activeFilterId}
@@ -290,7 +284,7 @@ export default function GuestCameraPage() {
         </section>
 
         {/* Camera Hardware Interface */}
-        <section className="flex flex-col gap-6 bg-analog-surface-container-low p-6 rounded-t-xl border-t border-analog-outline/15">
+        <section className="relative flex flex-col gap-4 bg-analog-surface-container-low p-6 rounded-t-xl border-t border-analog-outline/15">
           {pendingBlob ? (
             <div className="flex flex-col items-center justify-center">
               <input
@@ -314,32 +308,31 @@ export default function GuestCameraPage() {
               </div>
             </div>
           ) : (
-            <>
-              {/* Primary Controls Row */}
-              <div className="absolute">
-
+            <div className="flex items-center justify-between gap-4">
+              {/* Left Controls */}
+              <div className="flex flex-col gap-4 w-14">
                 {/* Flip Camera */}
-                <div className="flex flex-col items-center gap-2 ml-4">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Flip</span>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-[8px] uppercase tracking-[0.2em] text-analog-outline font-bold">Flip</span>
                   <button
                     type="button"
                     onClick={handleFlipCamera}
                     disabled={isCapturingOrUploading}
-                    className="w-10 h-10 bg-analog-surface-container-lowest rounded-full flex items-center justify-center analog-machined-depth text-analog-outline active:scale-95 transition-transform"
+                    className="w-9 h-9 bg-analog-surface-container-lowest rounded-full flex items-center justify-center analog-machined-depth text-analog-outline active:scale-95 transition-transform"
                   >
-                    <RefreshCwIcon className="size-5" />
+                    <RefreshCwIcon className="size-4" />
                   </button>
                 </div>
 
                 {/* Aspect Toggle */}
-                <div className="mt-4 flex flex-col items-center gap-2 ml-4">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-analog-outline font-bold">Frame</span>
-                  <div className="flex overflow-hidden rounded-md border border-analog-outline/30">
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-[8px] uppercase tracking-[0.2em] text-analog-outline font-bold">Frame</span>
+                  <div className="flex flex-col overflow-hidden rounded-md border border-analog-outline/30">
                     <button
                       type="button"
                       onClick={() => setCaptureOrientation("portrait")}
                       disabled={isCapturingOrUploading || Boolean(pendingBlob)}
-                      className={`px-2 py-1 text-[10px] uppercase tracking-wide ${captureOrientation === "portrait" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
+                      className={`px-2 py-1 text-[9px] uppercase tracking-wide ${captureOrientation === "portrait" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
                     >
                       3:4
                     </button>
@@ -347,35 +340,50 @@ export default function GuestCameraPage() {
                       type="button"
                       onClick={() => setCaptureOrientation("landscape")}
                       disabled={isCapturingOrUploading || Boolean(pendingBlob)}
-                      className={`px-2 py-1 text-[10px] uppercase tracking-wide ${captureOrientation === "landscape" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
+                      className={`px-2 py-1 text-[9px] uppercase tracking-wide ${captureOrientation === "landscape" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
                     >
                       4:3
                     </button>
                   </div>
                 </div>
-
               </div>
 
-              {/* Shutter Assembly */}
-              <CaptureButton
-                isBusy={isCapturingOrUploading}
-                shotsRemaining={remainingShots}
-                onCapture={handleCapture}
-                showRemainingLabel={false}
-              />
+              {/* Shutter Assembly (Center) */}
+              <div className="flex-1 flex justify-center">
+                <CaptureButton
+                  isBusy={isCapturingOrUploading}
+                  shotsRemaining={remainingShots}
+                  onCapture={handleCapture}
+                  showRemainingLabel={false}
+                />
+              </div>
 
-              {/* Exposure Counter */}
-              <div className="flex justify-center">
+              {/* Right Controls */}
+              <div className="flex flex-col gap-4">
+                {/* Gallery */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-[8px] uppercase tracking-[0.2em] text-analog-outline font-bold">Gallery</span>
+                  <Link
+                    href={`/s/${sessionId}/gallery`}
+                    className="w-9 h-9 bg-analog-surface-container-lowest rounded-full flex items-center justify-center analog-machined-depth text-analog-outline active:scale-95 hover:text-analog-primary hover:border-analog-primary/30 border border-transparent transition-all"
+                  >
+                    <Youtube className="size-4" />
+                  </Link>
+                </div>
 
-                <div className="bg-analog-surface-container-lowest px-4 py-1 rounded-sm flex items-baseline gap-2 border border-analog-outline/10">
-                  <span className="text-[8px] uppercase tracking-widest text-analog-outline font-bold">Exposures</span>
-                  <span className="font-newsreader italic text-2xl text-analog-tertiary leading-none">{shotsTaken}</span>
-                  <span className="text-xs text-analog-outline">/ {session.roll_preset}</span>
+                {/* Exposure Counter (Compact) */}
+                <div className="w-14 flex flex-col items-center gap-1.5">
+                  <span className="text-[8px] uppercase tracking-[0.2em] text-analog-outline font-bold">Exp</span>
+                  <div className=" w-fit px-1.5 h-fit py-1 rounded-sm flex items-center justify-center border border-analog-outline/10">
+                    <span className="font-mono font-bold italic text-sm text-analog-tertiary leading-none">{shotsTaken}/{session.roll_preset}</span>
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </section>
+
+
       </main>
 
       {/* Viewfinder Nav Marker */}
