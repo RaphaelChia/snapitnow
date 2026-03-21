@@ -1,16 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import { FILTER_CSS } from "@/lib/filters/css"
 import type { FilterId } from "@/lib/filters/presets"
-
-type ImageCaptureLike = {
-  takePhoto: () => Promise<Blob>
-}
-
-type WindowWithImageCapture = Window & {
-  ImageCapture?: new (track: MediaStreamTrack) => ImageCaptureLike
-}
 
 const CAPTURE_QUALITY = 0.92
 const PORTRAIT_ASPECT_RATIO = 3 / 4
@@ -176,13 +168,13 @@ export const CameraViewfinder = forwardRef<
     preferredHeight,
   ])
 
-  const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
+  const canvasToBlob = useCallback((canvas: HTMLCanvasElement): Promise<Blob | null> => {
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", CAPTURE_QUALITY)
     })
-  }
+  }, [])
 
-  const cropVideoFrameToTargetAspect = (video: HTMLVideoElement): Promise<Blob | null> => {
+  const cropVideoFrameToTargetAspect = useCallback((video: HTMLVideoElement): Promise<Blob | null> => {
     const sourceWidth = video.videoWidth
     const sourceHeight = video.videoHeight
     if (!sourceWidth || !sourceHeight) return Promise.resolve(null)
@@ -211,83 +203,20 @@ export const CameraViewfinder = forwardRef<
     )
 
     return canvasToBlob(canvas)
-  }
+  }, [targetAspectRatio, canvasToBlob])
 
-  const cropBlobToTargetAspect = async (sourceBlob: Blob): Promise<Blob | null> => {
-    try {
-      if (typeof createImageBitmap === "function") {
-        const bitmap = await createImageBitmap(sourceBlob)
-        try {
-          const crop = getCenteredCropRect(bitmap.width, bitmap.height, targetAspectRatio)
-          const outputWidth = Math.round(crop.sw)
-          const outputHeight = Math.round(crop.sh)
-
-          const canvas = document.createElement("canvas")
-          canvas.width = outputWidth
-          canvas.height = outputHeight
-          const ctx = canvas.getContext("2d")
-          if (!ctx) return null
-
-          ctx.drawImage(
-            bitmap,
-            crop.sx,
-            crop.sy,
-            crop.sw,
-            crop.sh,
-            0,
-            0,
-            outputWidth,
-            outputHeight,
-          )
-
-          return await canvasToBlob(canvas)
-        } finally {
-          bitmap.close()
-        }
-      }
-    } catch {
-      // Fall through to canvas fallback if bitmap decode fails.
-    }
-
-    return null
-  }
-
-  const captureFromCanvas = (): Promise<Blob | null> => {
+  const captureFromCanvas = useCallback((): Promise<Blob | null> => {
     const video = videoRef.current
     if (!video || video.readyState < 2) return Promise.resolve(null)
     return cropVideoFrameToTargetAspect(video)
-  }
+  }, [cropVideoFrameToTargetAspect])
 
   useImperativeHandle(ref, () => ({
     async captureFrame(): Promise<Blob | null> {
-      const track = streamRef.current?.getVideoTracks()?.[0]
-      if (!track || track.readyState !== "live") {
-        console.log('using capturefromcanvas')
-        return captureFromCanvas()
-      }
-
-      const imageCaptureCtor = (window as WindowWithImageCapture).ImageCapture
-      if (imageCaptureCtor) {
-        try {
-          const imageCapture = new imageCaptureCtor(track)
-          console.log('using imagecapture')
-          const blob = await imageCapture.takePhoto()
-          console.log('after takephoto imagecapture')
-          if (blob && blob.size > 0) {
-            const croppedBlob = await cropBlobToTargetAspect(blob)
-            if (croppedBlob && croppedBlob.size > 0) {
-              console.log('croppedBlob', croppedBlob.size)
-              return croppedBlob
-            }
-          }
-        } catch {
-          // If still capture is unsupported or fails on this browser, use canvas fallback.
-        }
-      }
-
+      // WYSIWYG capture: save exactly what is visible in the viewfinder.
       return captureFromCanvas()
     },
-  }), [captureFromCanvas, cropBlobToTargetAspect])
+  }), [captureFromCanvas])
 
   const cssFilter = FILTER_CSS[activeFilterId]
   const shouldMirror = activeFacingMode === "user"
