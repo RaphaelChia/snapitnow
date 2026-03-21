@@ -5,7 +5,22 @@ import {
   Source_Sans_3,
   Playfair_Display,
   Caveat,
+  Newsreader,
+  Space_Grotesk,
 } from "next/font/google";
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+  style: ["normal", "italic"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
 import "./globals.css";
 import { getSiteUrl } from "@/lib/seo";
 
@@ -88,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sourceSans.variable} ${playfair.variable} ${caveat.variable}`}
+      className={`${sourceSans.variable} ${playfair.variable} ${caveat.variable} ${newsreader.variable} ${spaceGrotesk.variable} dark`}
     >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

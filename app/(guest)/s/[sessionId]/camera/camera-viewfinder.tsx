@@ -5,6 +5,14 @@ import Image from "next/image"
 import { FILTER_CSS } from "@/lib/filters/css"
 import type { FilterId } from "@/lib/filters/presets"
 
+type ImageCaptureLike = {
+  takePhoto: () => Promise<Blob>
+}
+
+type WindowWithImageCapture = Window & {
+  ImageCapture?: new (track: MediaStreamTrack) => ImageCaptureLike
+}
+
 export interface CameraViewfinderHandle {
   captureFrame: () => Promise<Blob | null>
 }
@@ -109,23 +117,46 @@ export const CameraViewfinder = forwardRef<
     }
   }, [facingMode, onStreamReady, onStreamError])
 
+  const captureFromCanvas = (): Promise<Blob | null> => {
+    const video = videoRef.current
+    if (!video || video.readyState < 2) return Promise.resolve(null)
+
+    const canvas = document.createElement("canvas")
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return Promise.resolve(null)
+
+    // Keep the captured file normalized; mirror only in preview UI.
+    ctx.drawImage(video, 0, 0)
+
+    return new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
+    })
+  }
+
   useImperativeHandle(ref, () => ({
     async captureFrame(): Promise<Blob | null> {
-      const video = videoRef.current
-      if (!video || video.readyState < 2) return null
+      const track = streamRef.current?.getVideoTracks()?.[0]
+      if (!track || track.readyState !== "live") {
+        return captureFromCanvas()
+      }
 
-      const canvas = document.createElement("canvas")
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return null
+      const imageCaptureCtor = (window as WindowWithImageCapture).ImageCapture
+      if (imageCaptureCtor) {
+        try {
+          const imageCapture = new imageCaptureCtor(track)
+          const blob = await imageCapture.takePhoto()
+          if (blob && blob.size > 0) {
+            return blob
+          }
+        } catch {
+          // If still capture is unsupported or fails on this device/browser,
+          // continue with canvas fallback for compatibility.
+        }
+      }
 
-      // Keep the captured file normalized; mirror only in preview UI.
-      ctx.drawImage(video, 0, 0)
-
-      return new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92)
-      })
+      return captureFromCanvas()
     },
   }), [])
 
@@ -133,7 +164,7 @@ export const CameraViewfinder = forwardRef<
   const shouldMirror = activeFacingMode === "user"
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-analog-surface-container-lowest border-4 border-analog-surface-container-high analog-machined-depth rounded-lg">
       <video
         ref={videoRef}
         autoPlay
@@ -144,6 +175,12 @@ export const CameraViewfinder = forwardRef<
         onPause={(e) => { e.currentTarget.play().catch(() => { }) }}
         onClick={(e) => { e.preventDefault() }}
       />
+      {/* Warm Grain Overlay for Viewfinder */}
+      <div className="absolute inset-0 bg-analog-primary-container/10 mix-blend-overlay pointer-events-none"></div>
+      
+      {/* Focus Square */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-analog-secondary opacity-40 pointer-events-none"></div>
+
       {isFrozen && frozenPreviewUrl && (
         <Image
           src={frozenPreviewUrl}
