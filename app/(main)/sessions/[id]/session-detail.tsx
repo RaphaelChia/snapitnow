@@ -757,10 +757,10 @@ function ConfirmActivationDialog({
     </div>
   );
 
-  if (isMobile) {
+  if (false) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="px-4 pb-0">
+        <DrawerContent className="px-4">
           <DrawerHeader className="px-0 text-left">
             <DrawerTitle className="text-xl font-bold">
               Ready to go live?
@@ -797,16 +797,7 @@ function ConfirmActivationDialog({
           </DialogDescription>
         </DialogHeader>
         {content}
-        <DialogFooter className="mt-2 flex-col gap-2 sm:flex-row sm:justify-center">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isBusy}
-            className="text-muted-foreground"
-          >
-            Cancel
-          </Button>
-        </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );

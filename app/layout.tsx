@@ -1,13 +1,15 @@
+import { getSiteUrl } from "@/lib/seo";
 import type { Metadata, Viewport } from "next";
 import {
+  Caveat,
   Geist,
   Geist_Mono,
-  Source_Sans_3,
-  Playfair_Display,
-  Caveat,
   Newsreader,
+  Playfair_Display,
+  Source_Sans_3,
   Space_Grotesk,
 } from "next/font/google";
+import "./globals.css";
 
 const newsreader = Newsreader({
   subsets: ["latin"],
@@ -21,8 +23,6 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   display: "swap",
 });
-import "./globals.css";
-import { getSiteUrl } from "@/lib/seo";
 
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
@@ -103,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sourceSans.variable} ${playfair.variable} ${caveat.variable} ${newsreader.variable} ${spaceGrotesk.variable} dark`}
+      className={`${sourceSans.variable} ${playfair.variable} ${caveat.variable} ${newsreader.variable} ${spaceGrotesk.variable} `}
     >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
