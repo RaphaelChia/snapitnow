@@ -1,11 +1,9 @@
-import React, { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
-import { Button } from './ui/button';
-import { Megaphone } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useMyReferralOverview } from '@/hooks/use-referrals';
-import { ReferralShareCard } from './referral-share-card';
 import { cn } from '@/lib/utils';
+import { Megaphone } from 'lucide-react';
+import { useState } from 'react';
+import { ReferralShareCard } from './referral-share-card';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 interface Props {
   triggerClassName?: string;

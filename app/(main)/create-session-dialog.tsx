@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useCreateSession } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,17 +9,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  FILTER_PRESETS,
-  MVP_FILTER_IDS,
-  type FilterId,
-} from "@/lib/filters/presets";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useCreateSession } from "@/hooks/use-sessions";
 import {
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
 import { FILTER_CSS } from "@/lib/filters/css";
+import {
+  FILTER_PRESETS,
+  MVP_FILTER_IDS,
+  type FilterId,
+} from "@/lib/filters/presets";
 import { Check } from "lucide-react";
+import { useState } from "react";
 
 const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id));
 
@@ -52,11 +52,10 @@ function FilterPreviewCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 motion-safe-fade-up ${
-        selected
+      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all duration-200 motion-safe-fade-up ${selected
           ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-romance"
           : "border-border bg-background hover:border-muted-foreground/30"
-      }`}
+        }`}
     >
       <div className="relative h-16 w-full overflow-hidden rounded-md">
         {/* Sample scene: sky gradient + ground, filtered with CSS */}
@@ -78,9 +77,8 @@ function FilterPreviewCard({
       </div>
       <div className="text-center">
         <p
-          className={`text-xs font-medium leading-tight ${
-            selected ? "text-primary" : "text-foreground"
-          }`}
+          className={`text-xs font-medium leading-tight ${selected ? "text-primary" : "text-foreground"
+            }`}
         >
           {name}
         </p>

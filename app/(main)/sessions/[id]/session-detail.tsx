@@ -1,26 +1,15 @@
 "use client";
 
-import {
-  useSession,
-  useActivateSessionDev,
-  useCreateActivationCheckout,
-  useActivationPricing,
-  useDeleteSession,
-  useEndSession,
-  useUpdateWeddingDate,
-} from "@/hooks/use-sessions";
-import { useMyReferralOverview } from "@/hooks/use-referrals";
-import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
-import { FILTER_PRESETS } from "@/lib/filters/presets";
+import { PhotoSlideshow } from "@/components/photo-slideshow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -30,34 +19,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSessionPhotos } from "@/hooks/use-photos";
+import { useMyReferralOverview } from "@/hooks/use-referrals";
 import {
-  ArrowLeft,
-  Copy,
-  Check,
-  Film,
-  Users,
-  Lock,
-  ImageIcon,
-  QrCode,
-  Download,
-  Printer,
-  Maximize2,
-  Pencil,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import Image from "next/image";
-import { PhotoSlideshow } from "@/components/photo-slideshow";
+  useActivateSessionDev,
+  useActivationPricing,
+  useCreateActivationCheckout,
+  useDeleteSession,
+  useEndSession,
+  useSession,
+  useUpdateWeddingDate,
+} from "@/hooks/use-sessions";
 import {
   parseRollPreset,
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
+import { FILTER_PRESETS } from "@/lib/filters/presets";
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Download,
+  Film,
+  ImageIcon,
+  Lock,
+  Maximize2,
+  Pencil,
+  Printer,
+  QrCode,
+  Trash2,
+  Users,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { QRCodeCanvas } from "qrcode.react";
+import { useCallback, useRef, useState } from "react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -296,15 +296,6 @@ function ConfigSummary({
             Moments per guest
           </div>
           <div className="font-medium">{rollPreset}</div>
-
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="size-3.5" />
-            Filter mode
-          </div>
-          <div className="font-medium">
-            {filterMode === "fixed" ? "One filter for all" : "Guests choose"}
-          </div>
-
           {filterMode === "fixed" && fixedFilter && (
             <>
               <div className="flex items-center gap-2 text-muted-foreground">
