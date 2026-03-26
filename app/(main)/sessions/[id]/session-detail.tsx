@@ -106,7 +106,7 @@ function getGuestUrl(sessionId: string): string {
   return `/s/${sessionId}`;
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyUrlField({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -116,24 +116,18 @@ function CopyButton({ text }: { text: string }) {
   }, [text]);
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
+      type="button"
       onClick={handleCopy}
-      className="gap-1.5"
+      className="relative flex h-10 w-full items-center rounded-md border bg-muted/50 px-3 text-left text-sm font-mono transition-colors hover:bg-muted"
+      title="Copy guest link"
     >
-      {copied ? (
-        <>
-          <Check className="size-3.5" />
-          Copied
-        </>
-      ) : (
-        <>
-          <Copy className="size-3.5" />
-          Copy link
-        </>
-      )}
-    </Button>
+      <span className="truncate pr-10">{text}</span>
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+      </span>
+      <span className="sr-only">Copy guest link</span>
+    </button>
   );
 }
 
@@ -230,12 +224,7 @@ function ShareSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 truncate rounded-md border bg-muted/50 px-3 py-2 text-sm font-mono">
-            {guestUrl}
-          </div>
-          <CopyButton text={guestUrl} />
-        </div>
+        <CopyUrlField text={guestUrl} />
 
         {showQr && (
           <div

@@ -1,12 +1,12 @@
 "use client";
 
-import { useAtom } from "jotai";
-import { memoryWizardAtom } from "@/lib/state/memory-wizard-atom";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronLeft, Camera } from "lucide-react";
 import { ROLL_PRESET_VALUES } from "@/lib/domain/roll-presets";
+import { memoryWizardAtom } from "@/lib/state/memory-wizard-atom";
 import { cn } from "@/lib/utils";
+import { useAtom } from "jotai";
+import { ArrowRight, Camera, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Step2Page() {
   const [state, setState] = useAtom(memoryWizardAtom);
@@ -62,7 +62,7 @@ export default function Step2Page() {
       <div className="mt-auto flex flex-col gap-3 pt-8">
         <Button
           onClick={handleNext}
-          className="h-14 w-full gap-2 rounded-2xl text-lg font-medium shadow-lg transition-all active:scale-95"
+          className="h-14 w-full gap-2 text-lg font-medium shadow-lg transition-all active:scale-95"
         >
           Next: Look & Feel
           <ArrowRight className="size-5" />
