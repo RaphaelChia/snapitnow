@@ -64,6 +64,7 @@ import {
   Pencil,
   Printer,
   QrCode,
+  Share2,
   ShieldCheck,
   Trash2,
   Users,
@@ -416,10 +417,12 @@ function PhotoCard({
   photo,
   index,
   onClick,
+  onShare,
 }: {
   photo: PhotoWithUrl;
   index: number;
   onClick?: () => void;
+  onShare?: () => void;
 }) {
   const url = photo.thumbnailUrl ?? photo.signedUrl;
   if (!url) return null;
@@ -439,17 +442,20 @@ function PhotoCard({
         loading="lazy"
       />
       {photo.signedUrl && (
-        <a
-          href={photo.signedUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
           className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare?.();
+          }}
+          title="Share or save photo"
+          aria-label="Share or save photo"
         >
           <div className="flex size-10 items-center justify-center rounded-full bg-white/90 shadow-sm">
-            <Download className="size-4 text-foreground" />
+            <Share2 className="size-4 text-foreground" />
           </div>
-        </a>
+        </button>
       )}
       <div className="absolute bottom-1.5 left-1.5 flex flex-col gap-0.5">
 
@@ -472,6 +478,56 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
   const [slideshowIndex, setSlideshowIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState("");
+
+  const handleSharePhoto = useCallback(async (photo: PhotoWithUrl) => {
+    if (!photo.signedUrl) return;
+
+    const photoUrl = photo.signedUrl;
+    const hasNativeShare =
+      typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+    if (!hasNativeShare) {
+      window.open(photoUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    try {
+      const res = await fetch(photoUrl);
+      const blob = await res.blob();
+      const mimeType = blob.type || "image/jpeg";
+      const extension = mimeType.includes("png")
+        ? "png"
+        : mimeType.includes("webp")
+          ? "webp"
+          : "jpg";
+      const file = new File([blob], `snapitnow-photo-${photo.id}.${extension}`, {
+        type: mimeType,
+      });
+
+      if (
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({
+          title: "SnapItNow photo",
+          files: [file],
+        });
+        return;
+      }
+    } catch {
+      // Fall through to URL share/open fallback.
+    }
+
+    try {
+      await navigator.share({
+        title: "SnapItNow photo",
+        url: photoUrl,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      window.open(photoUrl, "_blank", "noopener,noreferrer");
+    }
+  }, []);
 
   const handleDownloadAll = useCallback(async () => {
     if (!photos || photos.length === 0 || isDownloading) return;
@@ -585,6 +641,9 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
                   onClick={() => {
                     setSlideshowIndex(index);
                     setSlideshowOpen(true);
+                  }}
+                  onShare={() => {
+                    void handleSharePhoto(photo);
                   }}
                 />
               ))}
