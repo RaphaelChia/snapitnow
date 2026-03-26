@@ -526,7 +526,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
     <>
       <Card className="motion-safe-fade-up">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between max-sm:flex-col gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <ImageIcon className="size-4" />
               Photos
