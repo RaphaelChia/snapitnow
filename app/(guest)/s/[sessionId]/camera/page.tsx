@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CameraViewfinder,
   type CameraViewfinderHandle,
 } from "./camera-viewfinder";
 
-import { CaptureButton } from "./capture-button";
-import type { FilterId } from "@/lib/filters/presets";
-import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
 import { Button } from "@/components/ui/button";
+import { GuestApiError, useGuestCameraInit } from "@/hooks/use-guest-auth";
+import type { FilterId } from "@/lib/filters/presets";
 import { RefreshCwIcon, Youtube } from "lucide-react";
+import { CaptureButton } from "./capture-button";
 
 function getExpiredSessionTitle(error: GuestApiError): string | null {
   if (!error.details || typeof error.details !== "object") {
@@ -330,7 +330,7 @@ export default function GuestCameraPage() {
                   <div className="flex flex-col overflow-hidden rounded-md border border-analog-outline/30">
                     <button
                       type="button"
-                      onClick={() => setCaptureOrientation("portrait")}
+                      onClick={() => setCaptureOrientation((prev) => prev === "portrait" ? "landscape" : "portrait")}
                       disabled={isCapturingOrUploading || Boolean(pendingBlob)}
                       className={`px-2 py-1 text-[9px] uppercase tracking-wide ${captureOrientation === "portrait" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
                     >
@@ -338,7 +338,7 @@ export default function GuestCameraPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCaptureOrientation("landscape")}
+                      onClick={() => setCaptureOrientation((prev) => prev === "landscape" ? "portrait" : "landscape")}
                       disabled={isCapturingOrUploading || Boolean(pendingBlob)}
                       className={`px-2 py-1 text-[9px] uppercase tracking-wide ${captureOrientation === "landscape" ? "bg-analog-primary text-analog-on-primary" : "bg-analog-surface-container-lowest text-analog-outline"} disabled:opacity-50`}
                     >

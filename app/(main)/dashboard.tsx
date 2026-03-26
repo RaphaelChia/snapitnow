@@ -99,13 +99,13 @@ export function Dashboard({
         <h1 className="font-display text-2xl font-semibold tracking-tight">Your Memories</h1>
         {sessions && sessions.length > 0 && (
           <Button
-            size="default"
+            size="sm"
             className="gap-2"
             asChild
           >
             <Link href="/memories/new/step-1">
               <Plus className="size-4" />
-              New memory
+              New <span className="hidden sm:inline">memory</span>
             </Link>
           </Button>
         )}
