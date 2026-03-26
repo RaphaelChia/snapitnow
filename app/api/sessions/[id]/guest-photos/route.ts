@@ -41,7 +41,7 @@ export async function GET(
     }
 
     const guestSession = gsData as unknown as GuestSession
-    const unlockThreshold = Math.ceil(session.roll_preset / 2)
+    const unlockThreshold = Math.min(6, Math.ceil(session.roll_preset / 2))
     const galleryUnlocked =
       session.status === "expired" || guestSession.shots_taken >= unlockThreshold
 

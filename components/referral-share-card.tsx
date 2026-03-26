@@ -75,12 +75,14 @@ export function ReferralShareCard({
   return (
     <Card
       className={cn(
-        "border-primary/20 bg-primary/5",
-        expandable && !isExpanded ? "cursor-pointer" : "",
+        "border-primary/20 bg-primary/5 cursor-pointer",
         className
       )}
       onClick={() => {
-        if (expandable && !isExpanded) setIsExpanded(true)
+        setIsExpanded(prev => {
+          if (!expandable) return prev;
+          return !prev;
+        })
       }}
     >
       <CardHeader className={cn(compact ? "pb-2" : "pb-3")}>

@@ -1,26 +1,15 @@
 "use client";
 
-import {
-  useSession,
-  useActivateSessionDev,
-  useCreateActivationCheckout,
-  useActivationPricing,
-  useDeleteSession,
-  useEndSession,
-  useUpdateWeddingDate,
-} from "@/hooks/use-sessions";
-import { useMyReferralOverview } from "@/hooks/use-referrals";
-import { useSessionPhotos } from "@/hooks/use-photos";
 import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
-import { FILTER_PRESETS } from "@/lib/filters/presets";
+import { PhotoSlideshow } from "@/components/photo-slideshow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -30,34 +19,69 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
-  ArrowLeft,
-  Copy,
-  Check,
-  Film,
-  Users,
-  Lock,
-  ImageIcon,
-  QrCode,
-  Download,
-  Printer,
-  Maximize2,
-  Pencil,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import Image from "next/image";
-import { PhotoSlideshow } from "@/components/photo-slideshow";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSessionPhotos } from "@/hooks/use-photos";
+import {
+  useActivateSessionDev,
+  useActivationPricing,
+  useCreateActivationCheckout,
+  useDeleteSession,
+  useEndSession,
+  useSession,
+  useUpdateWeddingDate,
+} from "@/hooks/use-sessions";
 import {
   parseRollPreset,
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
+import { FILTER_PRESETS } from "@/lib/filters/presets";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Download,
+  Film,
+  ImageIcon,
+  Lock,
+  Maximize2,
+  Pencil,
+  Printer,
+  QrCode,
+  ShieldCheck,
+  Trash2,
+  Users,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { QRCodeCanvas } from "qrcode.react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+}
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -296,15 +320,6 @@ function ConfigSummary({
             Moments per guest
           </div>
           <div className="font-medium">{rollPreset}</div>
-
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="size-3.5" />
-            Filter mode
-          </div>
-          <div className="font-medium">
-            {filterMode === "fixed" ? "One filter for all" : "Guests choose"}
-          </div>
-
           {filterMode === "fixed" && fixedFilter && (
             <>
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -511,7 +526,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
     <>
       <Card className="motion-safe-fade-up">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between max-sm:flex-col gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <ImageIcon className="size-4" />
               Photos
@@ -625,6 +640,7 @@ function ConfirmActivationDialog({
   const checkoutMutation = useCreateActivationCheckout();
   const pricing = pricingQuery.data;
   const isBusy = checkoutMutation.isPending;
+  const isMobile = useIsMobile();
 
   const handleProceed = useCallback(async () => {
     checkoutMutation.mutate(
@@ -637,80 +653,151 @@ function ConfirmActivationDialog({
     );
   }, [selectedPreset, sessionId, checkoutMutation]);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Confirm activation</DialogTitle>
-          <DialogDescription>
-            Review your session settings before proceeding to checkout.
-          </DialogDescription>
-        </DialogHeader>
+  const getPresetHint = (preset: number) => {
+    switch (preset) {
+      case 8:
+        return "Quick & fun";
+      case 12:
+        return "Most popular";
+      case 24:
+        return "Extra memories";
+      case 36:
+        return "Unlimited feel";
+      default:
+        return "";
+    }
+  };
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Moments per guest</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {ROLL_PRESET_VALUES.map((preset) => (
-                <Button
-                  key={preset}
-                  type="button"
-                  variant={selectedPreset === preset ? "default" : "outline"}
-                  onClick={() => setSelectedPreset(preset)}
-                  className="h-10 rounded-xl"
-                >
-                  {preset}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {pricing && (
-            <div className="rounded-xl border bg-muted/30 p-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Base price</span>
-                <span>
-                  {formatCurrency(pricing.baseCents, pricing.currency)}
-                </span>
-              </div>
-              {pricing.discountCents > 0 && (
-                <div className="mt-1 flex items-center justify-between text-sm">
-                  <span className="text-green-600 dark:text-green-400">
-                    {pricing.discountLabel ?? "Discount"}
-                  </span>
-                  <span className="text-green-600 dark:text-green-400">
-                    -{formatCurrency(pricing.discountCents, pricing.currency)}
-                  </span>
-                </div>
+  const content = (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <Label className="text-sm font-medium text-muted-foreground">
+          Moments per guest
+        </Label>
+        <div className="grid grid-cols-4 gap-2">
+          {ROLL_PRESET_VALUES.map((preset) => (
+            <Button
+              key={preset}
+              type="button"
+              variant={selectedPreset === preset ? "secondary" : "outline"}
+              onClick={() => setSelectedPreset(preset)}
+              className={cn(
+                "relative h-16 flex-col gap-0 rounded-sm transition-all overflow-visible",
+                selectedPreset === preset
+                  ? "border-primary bg-primary text-primary-foreground shadow-md"
+                  : "hover:border-primary/50 hover:bg-primary/5"
               )}
-              <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm font-semibold">
-                <span>Total</span>
-                <span>
-                  {formatCurrency(pricing.finalCents, pricing.currency)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {pricingQuery.isLoading && (
-            <div className="flex justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
-            </div>
-          )}
+            >
+              <span className="text-lg font-bold">{preset}</span>
+              <span className="text-[10px] opacity-80">photos</span>
+              <span
+                className={cn(
+                  "absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-wider",
+                  selectedPreset === preset
+                    ? "bg-primary-foreground text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {getPresetHint(preset)}
+              </span>
+            </Button>
+          ))}
         </div>
 
-        <DialogFooter className="gap-2 max-sm:gap-1">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isBusy}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleProceed} disabled={isBusy || !pricing}>
-            {isBusy ? "Redirecting to checkout..." : "Proceed to checkout"}
-          </Button>
-        </DialogFooter>
+      </div>
+
+      {pricing && (
+        <div className="overflow-hidden rounded-2xl border bg-muted/30">
+          <div className="flex flex-col gap-2 p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Activation fee</span>
+              <span className="font-medium">
+                {formatCurrency(pricing.baseCents, pricing.currency)}
+              </span>
+            </div>
+            {pricing.discountCents > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-green-600 dark:text-green-400">
+                  {pricing.discountLabel ?? "Discount"}
+                </span>
+                <span className="font-medium text-green-600 dark:text-green-400">
+                  -{formatCurrency(pricing.discountCents, pricing.currency)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between bg-muted/50 px-4 py-3 border-t">
+            <span className="text-sm font-semibold">Total to pay</span>
+            <span className="text-lg font-bold">
+              {formatCurrency(pricing.finalCents, pricing.currency)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {pricingQuery.isLoading && (
+        <div className="flex justify-center py-4">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <Button
+          onClick={handleProceed}
+          disabled={isBusy || !pricing}
+          className="h-12 w-full rounded-xl text-base font-semibold shadow-lg shadow-primary/20"
+        >
+          {isBusy ? "Redirecting..." : "Proceed to Secure Checkout"}
+        </Button>
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="size-3 text-green-600" />
+          <span>Secure payment powered by Stripe</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (false) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="px-4">
+          <DrawerHeader className="px-0 text-left">
+            <DrawerTitle className="text-xl font-bold">
+              Ready to go live?
+            </DrawerTitle>
+            <DrawerDescription className="text-sm">
+              Review your session settings before activation.
+            </DrawerDescription>
+          </DrawerHeader>
+          {content}
+          <DrawerFooter className="px-0 pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isBusy}
+              className="text-muted-foreground"
+            >
+              Cancel
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold">
+            Ready to go live?
+          </DialogTitle>
+          <DialogDescription className="text-sm">
+            Review your session settings before activation.
+          </DialogDescription>
+        </DialogHeader>
+        {content}
+
       </DialogContent>
     </Dialog>
   );
@@ -719,7 +806,6 @@ function ConfirmActivationDialog({
 export function SessionDetail({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const { data: session, isLoading, error } = useSession(sessionId);
-  const referralQuery = useMyReferralOverview();
   const activateDevMutation = useActivateSessionDev();
   const endSessionMutation = useEndSession();
   const deleteSessionMutation = useDeleteSession();
@@ -796,18 +882,16 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
             <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
               <p>
                 This memory is <strong>getting ready</strong>. Guests can join
-                after you activate this session through a one-time payment.
+                after you go live.
               </p>
-              <p className="flex items-center gap-1.5">
-                <Lock className="size-3.5" /> Secure checkout via Stripe.
-              </p>
+
               <Button
                 type="button"
                 size="sm"
                 className="mt-3"
                 onClick={() => setActivationDialogOpen(true)}
               >
-                Activate
+                Go live
               </Button>
               {isDev && (
                 <Button

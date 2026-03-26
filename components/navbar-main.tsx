@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
-import { Heart, LogOut, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Heart, LogOut } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
-import { useState } from "react";
+import Link from "next/link";
 
 import {
   DropdownMenu,
@@ -56,6 +55,69 @@ function BrandMark() {
   );
 }
 
+export const AvatarWithMenu = () => {
+  const { data: session, status } = useSession();
+  if (status === "loading") return <div className="size-9 animate-pulse rounded-full bg-muted" />
+  if (!session) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <div className="flex flex-row-reverse cursor-pointer">
+          <div className="hidden justify-center sm:flex sm:flex-col sm:items-start sm:leading-tight pl-2">
+            <span className="text-sm text-foreground">{session.user.name ?? "Account"}</span>
+            {session.user.email ? (
+              <span className="text-xs text-muted-foreground">{session.user.email}</span>
+            ) : null}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-auto rounded-full p-0 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Open account menu"
+          >
+            <UserAvatar src={session.user.image} name={session.user.name} />
+          </Button>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <div className="sm:hidden">
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="truncate text-sm font-medium text-foreground">
+              {session.user.name ?? "Account"}
+            </span>
+            {session.user.email ? (
+              <span className="truncate text-xs font-normal text-muted-foreground">
+                {session.user.email}
+              </span>
+            ) : null}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            asChild
+            className="gap-2"
+          >
+
+            <ReferralShareDialog triggerClassName="px-2" />
+          </DropdownMenuItem>
+        </div>
+        {session.user.isAdmin ? (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">Admin</Link>
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={() => signOut({ callbackUrl: "/login" })}
+          className="gap-2"
+        >
+          <LogOut className="size-4" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 export function MainNavbar() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
@@ -76,64 +138,7 @@ export function MainNavbar() {
           ) : session?.user ? (
             <>
               <ReferralShareDialog triggerClassName="hidden sm:inline-flex" />
-              {session.user.isAdmin && (
-                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-                  <Link href="/admin">Admin</Link>
-                </Button>
-              )}
-              <div className="hidden sm:flex sm:flex-col sm:items-end sm:leading-tight">
-                <span className="text-sm text-foreground">{session.user.name ?? "Account"}</span>
-                {session.user.email ? (
-                  <span className="text-xs text-muted-foreground">{session.user.email}</span>
-                ) : null}
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-auto rounded-full p-0 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label="Open account menu"
-                  >
-                    <UserAvatar src={session.user.image} name={session.user.name} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <div className="sm:hidden">
-                    <DropdownMenuLabel className="flex flex-col gap-0.5">
-                      <span className="truncate text-sm font-medium text-foreground">
-                        {session.user.name ?? "Account"}
-                      </span>
-                      {session.user.email ? (
-                        <span className="truncate text-xs font-normal text-muted-foreground">
-                          {session.user.email}
-                        </span>
-                      ) : null}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      asChild
-                      className="gap-2"
-                    >
-
-                      <ReferralShareDialog triggerClassName="px-2" />
-                    </DropdownMenuItem>
-                    {session.user.isAdmin ? (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin">Admin</Link>
-                      </DropdownMenuItem>
-                    ) : null}
-                    <DropdownMenuSeparator />
-                  </div>
-                  <DropdownMenuItem
-                    onSelect={() => signOut({ callbackUrl: "/login" })}
-                    className="gap-2"
-                  >
-                    <LogOut className="size-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AvatarWithMenu />
             </>
           ) : (
             <Button asChild variant="default" size="lg">

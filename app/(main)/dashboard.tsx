@@ -1,20 +1,21 @@
 "use client";
 
-import { useHostSessionsWithInitial } from "@/hooks/use-sessions";
-import { Camera, Plus, Users, Film, ChevronRight } from "lucide-react";
+import { ReferralShareCard } from "@/components/referral-share-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardTitle,
   CardDescription,
+  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CreateSessionDialog } from "./create-session-dialog";
-import { useState } from "react";
-import Link from "next/link";
+import { useHostSessionsWithInitial } from "@/hooks/use-sessions";
 import type { Session } from "@/lib/db/types";
-import { ReferralShareCard } from "@/components/referral-share-card";
+import { Camera, ChevronRight, Film, Plus, Users } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CreateSessionDialog } from "./create-session-dialog";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   draft: "secondary",
@@ -54,9 +55,7 @@ function SessionCard({ session }: { session: Session }) {
             </span>
             <span className="flex items-center gap-1">
               <Users className="size-3" />
-              {session.filter_mode === "preset"
-                ? "Guest picks"
-                : "Fixed filter"}
+              {session.fixed_filter}
             </span>
           </div>
         </CardContent>
@@ -90,21 +89,24 @@ export function Dashboard({
 }: {
   initialSessions?: Session[];
 }) {
+  const router = useRouter();
   const { data: sessions, isLoading, error } = useHostSessionsWithInitial(initialSessions);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Your Wedding Memories</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Your Memories</h1>
         {sessions && sessions.length > 0 && (
           <Button
-            size="default"
+            size="sm"
             className="gap-2"
-            onClick={() => setDialogOpen(true)}
+            asChild
           >
-            <Plus className="size-4" />
-            New memory
+            <Link href="/memories/new/step-1">
+              <Plus className="size-4" />
+              New <span className="hidden sm:inline">memory</span>
+            </Link>
           </Button>
         )}
       </div>
@@ -126,7 +128,7 @@ export function Dashboard({
       )}
 
       {sessions && sessions.length === 0 && (
-        <EmptyState onCreateClick={() => setDialogOpen(true)} />
+        <EmptyState onCreateClick={() => router.push("/memories/new/step-1")} />
       )}
 
       {sessions && sessions.length > 0 && (
