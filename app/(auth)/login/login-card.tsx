@@ -1,15 +1,14 @@
 "use client"
 
-import { signIn } from "next-auth/react"
-import { Heart, LockIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
+  CardHeader
 } from "@/components/ui/card"
+import { Heart, LockIcon } from "lucide-react"
+import { signIn } from "next-auth/react"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -48,7 +47,7 @@ export function LoginCard() {
           Start a session, share your QR code, and let your guests capture moments from their POV
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2 mt-auto">
+      <CardContent className="flex flex-col gap-2 mt-auto px-0">
         <Button
           variant="outline"
           size="lg"
@@ -61,8 +60,8 @@ export function LoginCard() {
           Continue with Google
         </Button>
 
-        <p className="flex items-start gap-2 px-2 text-sm leading-tight text-muted-foreground">
-          <LockIcon className="size-4 mt-1" /> Your data will not be used or shared with third parties.
+        <p className="flex items-start gap-2 px-2 text-xs leading-tight text-muted-foreground">
+          <LockIcon className="size-4 mt-1 " /> Your data will not be used or shared with third parties.
         </p>
       </CardContent>
     </Card>
