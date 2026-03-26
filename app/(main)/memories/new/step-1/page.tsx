@@ -1,11 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { memoryWizardAtom } from "@/lib/state/memory-wizard-atom";
+import { format } from "date-fns";
 import { useAtom } from "jotai";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDownIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Step1Page() {
@@ -40,14 +43,27 @@ export default function Step1Page() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="date" className="text-sm font-medium">Wedding Date</Label>
-          <Input
-            id="date"
-            type="date"
-            value={state.weddingDateLocal}
-            onChange={(e) => setState((prev) => ({ ...prev, weddingDateLocal: e.target.value }))}
-            required
-            className="h-12 rounded-xl text-lg"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                data-empty={!state.weddingDateLocal}
+                className="w-full justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
+              >
+                {state.weddingDateLocal ? format(new Date(state.weddingDateLocal), "PPP") : <span>Pick a date</span>}
+                <ChevronDownIcon />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                disabled={{ before: new Date() }}
+                mode="single"
+                selected={new Date(state.weddingDateLocal || "")}
+                onSelect={(date) => setState((prev) => ({ ...prev, weddingDateLocal: date?.toISOString() || "" }))}
+                defaultMonth={new Date(state.weddingDateLocal || "")}
+              />
+            </PopoverContent>
+          </Popover>
           <p className="text-xs text-muted-foreground">
             We use this to set the correct timezone for your event.
           </p>
