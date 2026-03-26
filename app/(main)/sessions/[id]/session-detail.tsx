@@ -29,6 +29,12 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useSessionPhotos } from "@/hooks/use-photos";
 import {
   useActivateSessionDev,
@@ -446,14 +452,7 @@ function PhotoCard({
         </a>
       )}
       <div className="absolute bottom-1.5 left-1.5 flex flex-col gap-0.5">
-        {photo.filter_used && (
-          <Badge
-            variant="secondary"
-            className="bg-black/50 text-[10px] text-white backdrop-blur-sm"
-          >
-            {getFilterName(photo.filter_used)}
-          </Badge>
-        )}
+
         {photo.caption && (
           <Badge
             variant="secondary"
@@ -520,9 +519,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
               <ImageIcon className="size-4" />
               Photos
               {photos && photos.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {photos.length}
-                </Badge>
+                <div className="text-xs text-muted-foreground font-mono">({photos.length})</div>
               )}
             </CardTitle>
             {photos && photos.length > 0 && (
@@ -804,6 +801,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
   const [endDialogOpen, setEndDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [weddingDateLocal, setWeddingDateLocal] = useState("");
+  const [activeTab, setActiveTab] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -908,41 +906,60 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
-      <div className="flex flex-col gap-4">
+      <Tabs
+        value={activeTab ?? (session.status === "draft" ? "setup" : "moments")}
+        onValueChange={(v) => setActiveTab(v)}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-2 mb-1">
+          <TabsTrigger value="moments" className="gap-2">
+            <ImageIcon className="size-3.5" />
+            Moments
+          </TabsTrigger>
+          <TabsTrigger value="setup" className="gap-2">
+            <QrCode className="size-3.5" />
+            Setup
+          </TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="moments" className="mt-0">
+          <PhotoGallery sessionId={sessionId} />
+        </TabsContent>
 
-        <ShareSection
-          sessionId={sessionId}
-          sessionTitle={session.title}
-          sessionPasscode={session.password_hash}
-        />
+        <TabsContent value="setup" className="mt-0">
+          <div className="flex flex-col gap-4">
+            <ShareSection
+              sessionId={sessionId}
+              sessionTitle={session.title}
+              sessionPasscode={session.password_hash}
+            />
 
-        <ConfigSummary
-          rollPreset={parseRollPreset(session.roll_preset)}
-          filterMode={session.filter_mode}
-          fixedFilter={session.fixed_filter}
-          allowedFilters={session.allowed_filters}
-          hasPassword={!!session.password_hash}
-          weddingDateLocal={session.wedding_date_local}
-          eventTimezone={session.event_timezone}
-          canUpdateWeddingDate={
-            session.status !== "expired" &&
-            session.wedding_date_update_count < 1
-          }
-          weddingDateInputValue={weddingDateInputValue}
-          isUpdatingWeddingDate={updateWeddingDateMutation.isPending}
-          onWeddingDateInputChange={setWeddingDateLocal}
-          onWeddingDateSubmit={() =>
-            updateWeddingDateMutation.mutate({
-              sessionId: session.id,
-              weddingDateLocal: weddingDateInputValue,
-              eventTimezone: session.event_timezone ?? "UTC",
-            })
-          }
-        />
-
-        <PhotoGallery sessionId={sessionId} />
-      </div>
+            <ConfigSummary
+              rollPreset={parseRollPreset(session.roll_preset)}
+              filterMode={session.filter_mode}
+              fixedFilter={session.fixed_filter}
+              allowedFilters={session.allowed_filters}
+              hasPassword={!!session.password_hash}
+              weddingDateLocal={session.wedding_date_local}
+              eventTimezone={session.event_timezone}
+              canUpdateWeddingDate={
+                session.status !== "expired" &&
+                session.wedding_date_update_count < 1
+              }
+              weddingDateInputValue={weddingDateInputValue}
+              isUpdatingWeddingDate={updateWeddingDateMutation.isPending}
+              onWeddingDateInputChange={setWeddingDateLocal}
+              onWeddingDateSubmit={() =>
+                updateWeddingDateMutation.mutate({
+                  sessionId: session.id,
+                  weddingDateLocal: weddingDateInputValue,
+                  eventTimezone: session.event_timezone ?? "UTC",
+                })
+              }
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {session.status === "active" && (
         <div className="mt-6">

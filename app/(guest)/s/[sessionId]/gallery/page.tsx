@@ -1,9 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CrownIcon, ImageIcon, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGuestSessionPhotos } from "@/hooks/use-photos";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, ImageIcon, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function GuestGalleryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -103,9 +104,8 @@ export default function GuestGalleryPage() {
           <CardDescription>
             {data.visibility.galleryUnlocked
               ? "You unlocked full gallery access. View all captured moments."
-              : `Capture ${missingShots} more moment${
-                  missingShots === 1 ? "" : "s"
-                } to unlock our full album.`}
+              : `Capture ${missingShots} more moment${missingShots === 1 ? "" : "s"
+              } to unlock our full album.`}
             {isSessionExpired ? " Uploads are closed for this session." : ""}
           </CardDescription>
         </CardHeader>
@@ -137,7 +137,7 @@ export default function GuestGalleryPage() {
                 return (
                   <div
                     key={photo.id}
-                    className="motion-safe-fade-up relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
+                    className={cn("motion-safe-fade-up relative aspect-square overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]", photo.isOwnPhoto && "border-romance-primary")}
                     style={{ animationDelay: `${index * 45}ms` }}
                   >
                     <Image
@@ -148,15 +148,10 @@ export default function GuestGalleryPage() {
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
+                    {photo.isOwnPhoto && (
+                      <div className="absolute top-1.5 right-1.5 text-xs text-romance-primary font-mono">yours</div>
+                    )}
                     <div className="absolute bottom-1.5 left-1.5 flex flex-col gap-0.5">
-                      {photo.isOwnPhoto && (
-                        <Badge
-                          variant="secondary"
-                          className="bg-black/50 text-xs text-white backdrop-blur-sm"
-                        >
-                          <CrownIcon className="size-3.5 shrink-0" />
-                        </Badge>
-                      )}
                       {photo.caption && (
                         <Badge
                           variant="secondary"
