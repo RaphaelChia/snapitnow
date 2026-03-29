@@ -50,6 +50,10 @@ import {
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
+import {
+  formatDateForDisplay,
+  formatLocalDateForDisplay,
+} from "@/lib/dates/local-date";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
 import { cn } from "@/lib/utils";
 import {
@@ -357,7 +361,11 @@ function ConfigSummary({
             Wedding date
           </div>
           <div className="flex items-center gap-2 font-medium">
-            <span>{weddingDateLocal ?? "Not set"}</span>
+            <span>
+              {weddingDateLocal
+                ? formatLocalDateForDisplay(weddingDateLocal)
+                : "Not set"}
+            </span>
             {canUpdateWeddingDate && (
               <Button
                 type="button"
@@ -912,7 +920,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
               {session.title}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Created {new Date(session.created_at).toLocaleDateString()}
+              Created {formatDateForDisplay(session.created_at)}
             </p>
           </div>
           <Badge

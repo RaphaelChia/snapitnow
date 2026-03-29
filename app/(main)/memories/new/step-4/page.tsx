@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateSession } from "@/hooks/use-sessions";
+import { coerceLocalDateString, formatLocalDateForDisplay } from "@/lib/dates/local-date";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
 import { initialMemoryWizardState, memoryWizardAtom } from "@/lib/state/memory-wizard-atom";
 import { useAtom } from "jotai";
@@ -18,8 +19,11 @@ export default function Step4Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedFilter = FILTER_PRESETS.find(f => f.id === state.fixedFilter);
+  const normalizedWeddingDate = coerceLocalDateString(state.weddingDateLocal);
 
   const handleSubmit = async () => {
+    if (!normalizedWeddingDate) return;
+
     setIsSubmitting(true);
     try {
       await createMutation.mutateAsync({
@@ -29,7 +33,7 @@ export default function Step4Page() {
         fixed_filter: state.fixedFilter,
         allowed_filters: null,
         password: state.password || null,
-        wedding_date_local: state.weddingDateLocal,
+        wedding_date_local: normalizedWeddingDate,
         event_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       });
 
@@ -83,7 +87,11 @@ export default function Step4Page() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</span>
-                <span className="text-sm font-medium">{state.weddingDateLocal}</span>
+                <span className="text-sm font-medium">
+                  {normalizedWeddingDate
+                    ? formatLocalDateForDisplay(normalizedWeddingDate)
+                    : "Not set"}
+                </span>
               </div>
             </div>
 
@@ -123,7 +131,7 @@ export default function Step4Page() {
       <div className="mt-auto flex flex-col gap-3 pt-8">
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting || createMutation.isPending}
+          disabled={isSubmitting || createMutation.isPending || !normalizedWeddingDate}
           className="h-14 w-full gap-2 rounded-2xl text-lg font-medium shadow-lg transition-all active:scale-95"
         >
           {isSubmitting ? "Creating..." : "Create Memory"}

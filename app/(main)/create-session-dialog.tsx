@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateSession } from "@/hooks/use-sessions";
+import { getBrowserLocalDate } from "@/lib/dates/local-date";
 import {
   ROLL_PRESET_VALUES,
   type RollPreset,
@@ -26,14 +27,6 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 
 const MVP_PRESETS = FILTER_PRESETS.filter((p) => MVP_FILTER_IDS.includes(p.id));
-
-function getBrowserLocalDate(): string {
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function FilterPreviewCard({
   filterId,

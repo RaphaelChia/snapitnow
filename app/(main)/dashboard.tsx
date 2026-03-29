@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useHostSessionsWithInitial } from "@/hooks/use-sessions";
+import { formatDateForDisplay } from "@/lib/dates/local-date";
 import type { Session } from "@/lib/db/types";
 import { Camera, ChevronRight, Film, Plus, Users } from "lucide-react";
 import Link from "next/link";
@@ -38,7 +39,7 @@ function SessionCard({ session }: { session: Session }) {
             <div className="min-w-0 flex-1">
               <CardTitle className="truncate">{session.title}</CardTitle>
               <CardDescription>
-                Created {new Date(session.created_at).toLocaleDateString()}
+                Created {formatDateForDisplay(session.created_at)}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">

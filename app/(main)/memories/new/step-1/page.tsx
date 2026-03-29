@@ -5,15 +5,35 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  coerceLocalDateString,
+  formatLocalDateForDisplay,
+  parseLocalDateToDate,
+  toLocalDateString,
+} from "@/lib/dates/local-date";
 import { memoryWizardAtom } from "@/lib/state/memory-wizard-atom";
-import { format } from "date-fns";
 import { useAtom } from "jotai";
 import { ArrowRight, ChevronDownIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Step1Page() {
   const [state, setState] = useAtom(memoryWizardAtom);
   const router = useRouter();
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const normalizedWeddingDate = coerceLocalDateString(state.weddingDateLocal);
+  const selectedDate = normalizedWeddingDate
+    ? parseLocalDateToDate(normalizedWeddingDate)
+    : undefined;
+
+  useEffect(() => {
+    if (
+      normalizedWeddingDate &&
+      normalizedWeddingDate !== state.weddingDateLocal
+    ) {
+      setState((prev) => ({ ...prev, weddingDateLocal: normalizedWeddingDate }));
+    }
+  }, [normalizedWeddingDate, setState, state.weddingDateLocal]);
 
   const handleNext = () => {
     if (state.title.trim() && state.weddingDateLocal) {
@@ -42,15 +62,15 @@ export default function Step1Page() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="date" className="text-sm font-medium">Wedding Date</Label>
-          <Popover>
+          <Label htmlFor="date" className="text-sm font-medium">Wedding Date (estimated)</Label>
+          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 data-empty={!state.weddingDateLocal}
                 className="w-full justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
               >
-                {state.weddingDateLocal ? format(new Date(state.weddingDateLocal), "PPP") : <span>Pick a date</span>}
+                {state.weddingDateLocal ? formatLocalDateForDisplay(state.weddingDateLocal) : <span>Pick a date</span>}
                 <ChevronDownIcon />
               </Button>
             </PopoverTrigger>
@@ -58,9 +78,17 @@ export default function Step1Page() {
               <Calendar
                 disabled={{ before: new Date() }}
                 mode="single"
-                selected={new Date(state.weddingDateLocal || "")}
-                onSelect={(date) => setState((prev) => ({ ...prev, weddingDateLocal: date?.toISOString() || "" }))}
-                defaultMonth={new Date(state.weddingDateLocal || "")}
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setState((prev) => ({
+                    ...prev,
+                    weddingDateLocal: date ? toLocalDateString(date) : "",
+                  }));
+                  if (date) {
+                    setIsDatePickerOpen(false);
+                  }
+                }}
+                defaultMonth={selectedDate}
               />
             </PopoverContent>
           </Popover>
