@@ -47,7 +47,7 @@ export function LoginCard() {
           Start a session, share your QR code, and let your guests capture moments from their POV
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2 mt-auto px-0">
+      <CardContent className="flex flex-col gap-2 mt-auto max-sm:px-0">
         <Button
           variant="outline"
           size="lg"

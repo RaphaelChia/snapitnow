@@ -4,6 +4,7 @@ import type { PhotoWithUrl } from "@/app/(main)/sessions/actions";
 import { PhotoSlideshow } from "@/components/photo-slideshow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -27,8 +28,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Tabs,
   TabsContent,
@@ -46,20 +47,24 @@ import {
   useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
 import {
+  coerceLocalDateString,
+  formatDateForDisplay,
+  formatLocalDateForDisplay,
+  parseLocalDateToDate,
+  toLocalDateString,
+} from "@/lib/dates/local-date";
+import {
   parseRollPreset,
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
-import {
-  formatDateForDisplay,
-  formatLocalDateForDisplay,
-} from "@/lib/dates/local-date";
 import { FILTER_PRESETS } from "@/lib/filters/presets";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   Check,
   Copy,
+  ChevronDownIcon,
   Download,
   Film,
   ImageIcon,
@@ -71,7 +76,7 @@ import {
   Share2,
   ShieldCheck,
   Trash2,
-  Users,
+  Users
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -307,6 +312,11 @@ function ConfigSummary({
   onWeddingDateSubmit: () => void;
 }) {
   const [isEditingWeddingDate, setIsEditingWeddingDate] = useState(false);
+  const [isWeddingDatePickerOpen, setIsWeddingDatePickerOpen] = useState(false);
+  const normalizedWeddingDate = coerceLocalDateString(weddingDateInputValue);
+  const selectedWeddingDate = normalizedWeddingDate
+    ? parseLocalDateToDate(normalizedWeddingDate)
+    : undefined;
 
   return (
     <Card className="motion-safe-fade-up" style={{ animationDelay: "60ms" }}>
@@ -370,8 +380,7 @@ function ConfigSummary({
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6"
+                className="w-fit h-fit p-0 min-h-0"
                 onClick={() => setIsEditingWeddingDate((prev) => !prev)}
                 aria-label="Edit wedding date"
               >
@@ -390,23 +399,53 @@ function ConfigSummary({
         {canUpdateWeddingDate && isEditingWeddingDate && (
           <div className="flex flex-col gap-1">
             <form
-              className="mt-2 flex items-center gap-2"
+              className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center"
               onSubmit={(e) => {
                 e.preventDefault();
                 onWeddingDateSubmit();
               }}
             >
-              <Input
-                id="weddingDateUpdate"
-                type="date"
-                value={weddingDateInputValue}
-                onChange={(e) => onWeddingDateInputChange(e.target.value)}
-                required
-              />
+              <Popover
+                open={isWeddingDatePickerOpen}
+                onOpenChange={setIsWeddingDatePickerOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    id="weddingDateUpdate"
+                    type="button"
+                    variant="outline"
+                    data-empty={!weddingDateInputValue}
+                    className="w-full justify-between text-left font-normal data-[empty=true]:text-muted-foreground sm:flex-1"
+                    aria-label="Select wedding date"
+                  >
+                    {weddingDateInputValue ? (
+                      formatLocalDateForDisplay(weddingDateInputValue)
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <ChevronDownIcon />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    disabled={{ before: new Date() }}
+                    mode="single"
+                    selected={selectedWeddingDate}
+                    defaultMonth={selectedWeddingDate}
+                    onSelect={(date) => {
+                      onWeddingDateInputChange(date ? toLocalDateString(date) : "");
+                      if (date) {
+                        setIsWeddingDatePickerOpen(false);
+                      }
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
               <Button
                 type="submit"
                 variant="outline"
-                disabled={isUpdatingWeddingDate}
+                className="w-full sm:w-auto"
+                disabled={isUpdatingWeddingDate || !weddingDateInputValue}
               >
                 {isUpdatingWeddingDate ? "Saving..." : "Save date"}
               </Button>

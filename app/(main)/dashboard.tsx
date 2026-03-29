@@ -12,7 +12,7 @@ import {
 import { useHostSessionsWithInitial } from "@/hooks/use-sessions";
 import { formatDateForDisplay } from "@/lib/dates/local-date";
 import type { Session } from "@/lib/db/types";
-import { Camera, ChevronRight, Film, Plus, Users } from "lucide-react";
+import { Camera, ChevronRight, Film, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -55,7 +55,7 @@ function SessionCard({ session }: { session: Session }) {
               {session.roll_preset} shots
             </span>
             <span className="flex items-center gap-1">
-              <Users className="size-3" />
+              <Sparkles className="size-3" />
               {session.fixed_filter}
             </span>
           </div>
