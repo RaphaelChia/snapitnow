@@ -11,6 +11,7 @@ import {
   fetchActivationPricing,
   endSessionManual,
   updateWeddingDate,
+  updateSessionFilter,
   type CreateSessionFormData,
 } from "@/app/(main)/sessions/actions"
 import { type RollPreset } from "@/lib/domain/roll-presets"
@@ -113,6 +114,19 @@ export function useUpdateWeddingDate() {
       weddingDateLocal: string
       eventTimezone: string
     }) => updateWeddingDate(input),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })
+    },
+  })
+}
+
+export function useUpdateSessionFilter() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: { sessionId: string; fixedFilter: string }) =>
+      updateSessionFilter(input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.list() })
       queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) })

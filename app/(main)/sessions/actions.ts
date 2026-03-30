@@ -11,6 +11,7 @@ import {
   endSessionByHost,
   updateWeddingDateOnce,
   updateSessionRollPreset,
+  updateSessionFixedFilter,
 } from "@/lib/db/mutations/sessions";
 import {
   ACTIVATION_PAYMENT_TYPE,
@@ -37,11 +38,13 @@ import {
 import { listSessionPhotos } from "@/lib/db/queries/photos";
 import { getStorageService, BUCKET } from "@/lib/storage";
 import type { Session, Photo } from "@/lib/db/types";
+import { MVP_FILTER_IDS } from "@/lib/filters/presets";
 import {
   auditSessionActivationCheckoutStarted,
   auditSessionCreated,
   auditSessionDeleted,
   auditSessionEndedManual,
+  auditSessionFilterUpdated,
   auditSessionWeddingDateUpdated,
 } from "@/lib/audit/domain/session";
 
@@ -229,11 +232,16 @@ const updateWeddingDateSchema = z.object({
     .min(1, "Event timezone is required")
     .refine((value) => isValidIanaTimezone(value), "Invalid timezone"),
 });
+const updateSessionFilterSchema = z.object({
+  sessionId: z.string().uuid(),
+  fixedFilter: z.string(),
+});
 const activationRollPresetSchema = z
   .number()
   .refine((value) => isRollPreset(value), {
     message: `Roll preset must be ${ROLL_PRESET_VALUES.join(", ")}`,
   });
+const KNOWN_FILTER_IDS = new Set<string>(MVP_FILTER_IDS);
 
 function hasErrorCode(error: unknown, expectedCode: string): boolean {
   if (typeof error !== "object" || error === null) {
@@ -496,6 +504,48 @@ export async function updateWeddingDate(
       weddingDateLocal: updatedSession.wedding_date_local,
       eventTimezone: updatedSession.event_timezone,
       weddingDateUpdateCount: updatedSession.wedding_date_update_count,
+    },
+  });
+
+  return updatedSession;
+}
+
+export async function updateSessionFilter(input: {
+  sessionId: string;
+  fixedFilter: string;
+}): Promise<Session> {
+  const userId = await getAuthenticatedUserId();
+  const parsedInput = updateSessionFilterSchema.parse(input);
+  if (!KNOWN_FILTER_IDS.has(parsedInput.fixedFilter)) {
+    throw new Error("Invalid filter");
+  }
+
+  const existing = await getSessionById(parsedInput.sessionId);
+  if (!existing || existing.host_id !== userId) {
+    throw new Error("Session not found");
+  }
+  if (existing.status === "expired") {
+    throw new Error("Session has ended");
+  }
+
+  const updatedSession = await updateSessionFixedFilter(
+    parsedInput.sessionId,
+    userId,
+    parsedInput.fixedFilter
+  );
+
+  await auditSessionFilterUpdated({
+    sessionId: updatedSession.id,
+    actorType: "host",
+    actorId: userId,
+    metadata: {
+      previousFilterMode: existing.filter_mode,
+      previousFixedFilter: existing.fixed_filter,
+      previousAllowedFilters: existing.allowed_filters,
+      filterMode: updatedSession.filter_mode,
+      fixedFilter: updatedSession.fixed_filter,
+      allowedFilters: updatedSession.allowed_filters,
+      status: updatedSession.status,
     },
   });
 

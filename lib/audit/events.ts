@@ -6,6 +6,7 @@ export const SESSION_AUDIT_EVENTS = {
   ENDED_MANUAL: "session.ended.manual",
   ENDED_AUTO_WEDDING_CUTOFF: "session.ended.auto_wedding_cutoff",
   WEDDING_DATE_UPDATED: "session.wedding_date.updated",
+  FILTER_UPDATED: "session.filter.updated",
   EXPIRED_ADMIN_FORCE: "session.expired.admin_force",
   REACTIVATED_ADMIN_FORCE: "session.reactivated.admin_force",
 } as const

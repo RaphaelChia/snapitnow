@@ -82,6 +82,19 @@ export async function auditSessionWeddingDateUpdated(
   })
 }
 
+export async function auditSessionFilterUpdated(
+  input: SessionAuditInput
+): Promise<void> {
+  await logAuditEvent({
+    entityType: "session",
+    entityId: input.sessionId,
+    eventType: SESSION_AUDIT_EVENTS.FILTER_UPDATED,
+    actorType: input.actorType,
+    actorId: input.actorId ?? null,
+    metadata: input.metadata,
+  })
+}
+
 export async function auditSessionExpiredAdminForce(
   input: SessionAuditInput
 ): Promise<void> {

@@ -17,6 +17,8 @@ import { ArrowRight, ChevronDownIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const MIN_WEDDING_DATE = new Date(Date.now() + 1000 * 60 * 60 * 24);
+
 export default function Step1Page() {
   const [state, setState] = useAtom(memoryWizardAtom);
   const router = useRouter();
@@ -76,7 +78,7 @@ export default function Step1Page() {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                disabled={{ before: new Date() }}
+                disabled={{ before: MIN_WEDDING_DATE }}
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {

@@ -44,6 +44,7 @@ import {
   useDeleteSession,
   useEndSession,
   useSession,
+  useUpdateSessionFilter,
   useUpdateWeddingDate,
 } from "@/hooks/use-sessions";
 import {
@@ -58,7 +59,7 @@ import {
   ROLL_PRESET_VALUES,
   type RollPreset,
 } from "@/lib/domain/roll-presets";
-import { FILTER_PRESETS } from "@/lib/filters/presets";
+import { FILTER_PRESETS, MVP_FILTER_IDS } from "@/lib/filters/presets";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -293,10 +294,13 @@ function ConfigSummary({
   weddingDateLocal,
   eventTimezone,
   canUpdateWeddingDate,
+  canUpdateFilter,
   weddingDateInputValue,
   isUpdatingWeddingDate,
+  isUpdatingFilter,
   onWeddingDateInputChange,
   onWeddingDateSubmit,
+  onFilterSubmit,
 }: {
   rollPreset: RollPreset;
   filterMode: string;
@@ -306,17 +310,27 @@ function ConfigSummary({
   weddingDateLocal: string | null;
   eventTimezone: string | null;
   canUpdateWeddingDate: boolean;
+  canUpdateFilter: boolean;
   weddingDateInputValue: string;
   isUpdatingWeddingDate: boolean;
+  isUpdatingFilter: boolean;
   onWeddingDateInputChange: (value: string) => void;
   onWeddingDateSubmit: () => void;
+  onFilterSubmit: (filterId: string) => Promise<unknown>;
 }) {
   const [isEditingWeddingDate, setIsEditingWeddingDate] = useState(false);
+  const [isEditingFilter, setIsEditingFilter] = useState(false);
+  const [selectedFixedFilter, setSelectedFixedFilter] = useState(
+    fixedFilter ?? "none"
+  );
   const [isWeddingDatePickerOpen, setIsWeddingDatePickerOpen] = useState(false);
   const normalizedWeddingDate = coerceLocalDateString(weddingDateInputValue);
   const selectedWeddingDate = normalizedWeddingDate
     ? parseLocalDateToDate(normalizedWeddingDate)
     : undefined;
+  const filterOptions = FILTER_PRESETS.filter((preset) =>
+    MVP_FILTER_IDS.includes(preset.id)
+  );
 
   return (
     <Card className="motion-safe-fade-up" style={{ animationDelay: "60ms" }}>
@@ -336,7 +350,25 @@ function ConfigSummary({
                 <ImageIcon className="size-3.5" />
                 Filter
               </div>
-              <div className="font-medium">{getFilterName(fixedFilter)}</div>
+              <div className="flex items-center gap-2 font-medium">
+                <span>{getFilterName(fixedFilter)}</span>
+                {canUpdateFilter && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-fit h-fit p-0 min-h-0"
+                    onClick={() => {
+                      if (!isEditingFilter) {
+                        setSelectedFixedFilter(fixedFilter ?? "none");
+                      }
+                      setIsEditingFilter((prev) => !prev);
+                    }}
+                    aria-label="Edit filter"
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                )}
+              </div>
             </>
           )}
 
@@ -454,6 +486,65 @@ function ConfigSummary({
               Wedding date can only be changed once after creation.
             </p>
           </div>
+        )}
+
+        {canUpdateFilter && isEditingFilter && (
+          <form
+            className="mt-4 flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await onFilterSubmit(selectedFixedFilter);
+                setIsEditingFilter(false);
+              } catch {
+                // Keep editor open when save fails.
+              }
+            }}
+          >
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {filterOptions.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={cn(
+                    "rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                    selectedFixedFilter === preset.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:border-muted-foreground/40"
+                  )}
+                  onClick={() => setSelectedFixedFilter(preset.id)}
+                >
+                  <div className="font-medium">{preset.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {preset.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={isUpdatingFilter || !selectedFixedFilter}
+              >
+                {isUpdatingFilter ? "Saving..." : "Save filter"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedFixedFilter(fixedFilter ?? "none");
+                  setIsEditingFilter(false);
+                }}
+                disabled={isUpdatingFilter}
+              >
+                Cancel
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              New captures use this filter. Guests will see it after they refresh.
+            </p>
+          </form>
         )}
       </CardContent>
     </Card>
@@ -733,6 +824,7 @@ function ConfirmActivationDialog({
   const pricing = pricingQuery.data;
   const isBusy = checkoutMutation.isPending;
   const isMobile = useIsMobile();
+  void isMobile;
 
   const handleProceed = useCallback(async () => {
     checkoutMutation.mutate(
@@ -902,6 +994,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
   const endSessionMutation = useEndSession();
   const deleteSessionMutation = useDeleteSession();
   const updateWeddingDateMutation = useUpdateWeddingDate();
+  const updateSessionFilterMutation = useUpdateSessionFilter();
   const isDev = process.env.NODE_ENV !== "production";
   const [activationDialogOpen, setActivationDialogOpen] = useState(false);
   const [endDialogOpen, setEndDialogOpen] = useState(false);
@@ -1052,14 +1145,22 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
                 session.status !== "expired" &&
                 session.wedding_date_update_count < 1
               }
+              canUpdateFilter={session.status !== "expired"}
               weddingDateInputValue={weddingDateInputValue}
               isUpdatingWeddingDate={updateWeddingDateMutation.isPending}
+              isUpdatingFilter={updateSessionFilterMutation.isPending}
               onWeddingDateInputChange={setWeddingDateLocal}
               onWeddingDateSubmit={() =>
                 updateWeddingDateMutation.mutate({
                   sessionId: session.id,
                   weddingDateLocal: weddingDateInputValue,
                   eventTimezone: session.event_timezone ?? "UTC",
+                })
+              }
+              onFilterSubmit={(fixedFilter) =>
+                updateSessionFilterMutation.mutateAsync({
+                  sessionId: session.id,
+                  fixedFilter,
                 })
               }
             />

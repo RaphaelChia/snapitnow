@@ -68,6 +68,29 @@ export async function updateSessionRollPreset(
   return data as Session
 }
 
+export async function updateSessionFixedFilter(
+  sessionId: string,
+  hostId: string,
+  fixedFilter: string,
+): Promise<Session> {
+  const db = createServerClient()
+  const { data, error } = await db
+    .from("sessions")
+    .update({
+      filter_mode: "fixed",
+      fixed_filter: fixedFilter,
+      allowed_filters: null,
+    })
+    .eq("id", sessionId)
+    .eq("host_id", hostId)
+    .neq("status", "expired")
+    .select("*")
+    .single()
+
+  if (error) throw error
+  return data as Session
+}
+
 export async function activateSession(
   sessionId: string,
   hostId: string,

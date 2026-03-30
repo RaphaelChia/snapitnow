@@ -5,6 +5,7 @@ import { createPhotoRecord, markPhotoUploaded, markPhotoFailed } from "@/lib/db/
 import { getStorageService, BUCKET } from "@/lib/storage"
 import { createServerClient } from "@/lib/db"
 import { processPhoto } from "@/lib/filters/process-photo"
+import { FILTER_PRESETS, type FilterId } from "@/lib/filters/presets"
 import type { GuestSession } from "@/lib/db/types"
 import { getGuestAuthFromRequest } from "@/lib/guest-auth"
 
@@ -13,6 +14,7 @@ const uploadSchema = z.object({
   filterUsed: z.string().nullable(),
   caption: z.string().max(16).nullable(),
 })
+const KNOWN_FILTER_IDS = new Set(FILTER_PRESETS.map((preset) => preset.id))
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,6 +50,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Session not active" }, { status: 404 })
     }
 
+    const selectedFilter = filterUsed ?? null
+    let effectiveFilterUsed: FilterId
+    if (session.filter_mode === "fixed") {
+      const configuredFilter = session.fixed_filter ?? "none"
+      if (!KNOWN_FILTER_IDS.has(configuredFilter as FilterId)) {
+        return NextResponse.json({ error: "Session has an invalid configured filter" }, { status: 400 })
+      }
+      if (selectedFilter && selectedFilter !== configuredFilter) {
+        return NextResponse.json({ error: "Filter is not allowed for this session" }, { status: 403 })
+      }
+      effectiveFilterUsed = configuredFilter as FilterId
+    } else {
+      const allowedFilters = session.allowed_filters ?? []
+      if (allowedFilters.length === 0) {
+        return NextResponse.json({ error: "Session has no available filters" }, { status: 403 })
+      }
+      const requestedFilter = selectedFilter ?? allowedFilters[0]
+      if (!allowedFilters.includes(requestedFilter)) {
+        return NextResponse.json({ error: "Filter is not allowed for this session" }, { status: 403 })
+      }
+      if (!KNOWN_FILTER_IDS.has(requestedFilter as FilterId)) {
+        return NextResponse.json({ error: "Invalid filter selected" }, { status: 400 })
+      }
+      effectiveFilterUsed = requestedFilter as FilterId
+    }
+
     const db = createServerClient()
     const { data: gsData, error: gsError } = await db
       .from("guest_sessions")
@@ -79,7 +107,7 @@ export async function POST(req: NextRequest) {
         session_id: sessionId,
         host_id: session.host_id,
         guest_user_id: guestUserId,
-        filter_used: filterUsed,
+        filter_used: effectiveFilterUsed,
         caption,
       })
       photoId = photo.id
@@ -97,7 +125,7 @@ export async function POST(req: NextRequest) {
       await markPhotoUploaded(photo.id)
 
       after(async () => {
-        await processPhoto(photo.id, photo.object_key, filterUsed ?? "none")
+        await processPhoto(photo.id, photo.object_key, effectiveFilterUsed)
       })
 
       return NextResponse.json({
