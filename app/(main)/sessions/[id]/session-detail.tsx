@@ -64,8 +64,8 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   Check,
-  Copy,
   ChevronDownIcon,
+  Copy,
   Download,
   Film,
   ImageIcon,
@@ -83,7 +83,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -121,6 +121,10 @@ function getGuestUrl(sessionId: string): string {
     return `${window.location.origin}/s/${sessionId}`;
   }
   return `/s/${sessionId}`;
+}
+
+function staggerStyle(stagger: number): CSSProperties {
+  return { "--stagger": stagger } as CSSProperties;
 }
 
 function CopyUrlField({ text }: { text: string }) {
@@ -229,7 +233,7 @@ function ShareSection({
   }, [escapedPasscode, sessionTitle]);
 
   return (
-    <Card className="motion-safe-fade-up">
+    <Card className="motion-safe-fade-up" style={staggerStyle(0)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <QrCode className="size-4" />
@@ -333,7 +337,7 @@ function ConfigSummary({
   );
 
   return (
-    <Card className="motion-safe-fade-up" style={{ animationDelay: "60ms" }}>
+    <Card className="motion-safe-fade-up" style={staggerStyle(1)}>
       <CardHeader>
         <CardTitle className="text-base">Configuration</CardTitle>
       </CardHeader>
@@ -568,7 +572,7 @@ function PhotoCard({
   return (
     <div
       className="motion-safe-fade-up group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-border/60 bg-muted shadow-romance transition-transform duration-200 hover:scale-[1.02]"
-      style={{ animationDelay: `${index * 45}ms` }}
+      style={staggerStyle(Math.min(index, 10) * 0.5)}
       onClick={onClick}
     >
       <Image
@@ -706,7 +710,7 @@ function PhotoGallery({ sessionId }: { sessionId: string }) {
 
   return (
     <>
-      <Card className="motion-safe-fade-up">
+      <Card className="motion-safe-fade-up" style={staggerStyle(0)}>
         <CardHeader>
           <div className="flex items-start justify-between max-sm:flex-col gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -823,8 +827,6 @@ function ConfirmActivationDialog({
   const checkoutMutation = useCreateActivationCheckout();
   const pricing = pricingQuery.data;
   const isBusy = checkoutMutation.isPending;
-  const isMobile = useIsMobile();
-  void isMobile;
 
   const handleProceed = useCallback(async () => {
     checkoutMutation.mutate(
@@ -1037,7 +1039,10 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
-      <div className="motion-safe-fade-up mb-6 flex flex-col gap-4">
+      <div
+        className="motion-safe-fade-up mb-6 flex flex-col gap-4"
+        style={staggerStyle(0)}
+      >
         <Link
           href="/"
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -1065,7 +1070,10 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
 
         {session.status === "draft" && (
           <>
-            <div className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <div
+              className="motion-safe-fade-up rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200"
+              style={staggerStyle(1)}
+            >
               <p>
                 This memory is <strong>getting ready</strong>. Guests can join
                 after you go live.
@@ -1108,7 +1116,8 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       <Tabs
         value={activeTab ?? (session.status === "draft" ? "setup" : "moments")}
         onValueChange={(v) => setActiveTab(v)}
-        className="w-full"
+        className="motion-safe-fade-up w-full"
+        style={staggerStyle(2)}
       >
         <TabsList className="grid w-full grid-cols-2 mb-1">
           <TabsTrigger value="moments" className="gap-2">
@@ -1169,7 +1178,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       </Tabs>
 
       {session.status === "active" && (
-        <div className="mt-6">
+        <div className="motion-safe-fade-up mt-6" style={staggerStyle(3)}>
           <Button
             type="button"
             variant="destructive"
@@ -1182,7 +1191,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       )}
 
       {session.status !== "active" && (
-        <div className="mt-6">
+        <div className="motion-safe-fade-up mt-6" style={staggerStyle(3)}>
           <Button
             type="button"
             variant="destructive"
